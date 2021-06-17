@@ -26,7 +26,7 @@ Download the chosen dataset:
 python train.py --dataset apple2orange --cuda --n_epochs 20 --decay_epoch 10
 ```
 
-## Teting
+## Testing
 
 ```bash
 python test.py --dataset apple2orange --cuda
