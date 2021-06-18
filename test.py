@@ -19,8 +19,8 @@ parser.add_argument('--output_nc', type=int, default=3, help='number of channels
 parser.add_argument('--size', type=int, default=256, help='size of the data (squared assumed)')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
 parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
-parser.add_argument('--generator_A2B', type=str, default='weights/horse2zebra/netG_A2B.pth', help='A2B generator checkpoint file')
-parser.add_argument('--generator_B2A', type=str, default='weights/horse2zebra/netG_B2A.pth', help='B2A generator checkpoint file')
+parser.add_argument('--generator_A2B', type=str, default='weights/surf2nude/netG_A2B.pth', help='A2B generator checkpoint file')
+parser.add_argument('--generator_B2A', type=str, default='weights/surf2nude/netG_B2A.pth', help='B2A generator checkpoint file')
 opt = parser.parse_args()
 print(opt)
 
@@ -54,13 +54,14 @@ transforms_ = [ transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, mode='test'),
                         batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
-###################################
 
 # Directories
 output_dir = os.path.join('output', opt.dataset)
 if not os.path.exists(output_dir):
     os.makedirs(os.path.join(output_dir, 'A'))
     os.makedirs(os.path.join(output_dir, 'B'))
+
+#####################################
 
 ###### Testing######
 
@@ -80,4 +81,5 @@ for i, batch in enumerate(dataloader):
     sys.stdout.write('\rGenerated images %04d of %04d' % (i+1, len(dataloader)))
 
 sys.stdout.write('\n')
-###################################
+
+####################
