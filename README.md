@@ -9,7 +9,7 @@ Download the chosen dataset:
 ./download_dataset apple2orange
 ```
 
-```bash
+```
 ├── datasets                   
 |   ├── <dataset_name>         # i.e. apple2orange
 |   |   ├── train              # Training
