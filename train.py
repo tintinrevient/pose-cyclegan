@@ -57,7 +57,7 @@ netG_B2A.apply(weights_init_normal)
 netD_A.apply(weights_init_normal)
 netD_B.apply(weights_init_normal)
 
-# Lossess
+# Losses
 criterion_GAN = torch.nn.MSELoss()
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
@@ -93,7 +93,6 @@ dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), tran
 
 # Loss plot
 # logger = Logger(opt.n_epochs, len(dataloader))
-###################################
 
 # Directories
 output_dir = os.path.join('output', opt.dataset)
@@ -103,6 +102,8 @@ if not os.path.exists(output_dir):
     os.makedirs(os.path.join(output_dir, 'B'))
 if not os.path.exists(weights_dir):
     os.makedirs(weights_dir)
+
+#####################################
 
 ###### Training ######
 for epoch in range(opt.epoch, opt.n_epochs):
@@ -220,4 +221,5 @@ for epoch in range(opt.epoch, opt.n_epochs):
     torch.save(netG_B2A.state_dict(), os.path.join(weights_dir, 'netG_B2A.pth'))
     torch.save(netD_A.state_dict(), os.path.join(weights_dir, 'netD_A.pth'))
     torch.save(netD_B.state_dict(), os.path.join(weights_dir, 'netD_B.pth'))
-###################################
+
+######################
