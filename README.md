@@ -26,9 +26,29 @@ Download the chosen dataset:
 python train.py --dataset apple2orange --cuda --n_epochs 20 --decay_epoch 10
 ```
 
+<p float="left">
+    <img src="pix/training.png" width="600" />
+</p>
+
 ## Testing
 
 ```bash
 python test.py --dataset apple2orange --cuda
 ```
 
+## Generate
+
+```bash
+python generate.py --input_img pix/surf.jpg --generator A2B
+python generate.py --input_img pix/nude.jpg --generator B2A
+```
+
+<p float="left">
+    <img src="pix/surf.jpg" height="256" />
+    <img src="pix/surf_output.png" height="256" />
+</p>
+
+<p float="left">
+    <img src="pix/nude.jpg" height="256" />
+    <img src="pix/nude_output.png" height="256" />
+</p>
