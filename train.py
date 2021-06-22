@@ -227,8 +227,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         if i % opt.print_freq == 0:
 
             # Make the directory of each epoch
-            epoch_dir = os.path.join(output_dir, epoch)
-            if os.path.exists(epoch_dir):
+            epoch_dir = os.path.join(output_dir, 'epoch_{}'.format(epoch))
+            if not os.path.exists(epoch_dir):
                 os.makedirs(epoch_dir)
 
             # real images
