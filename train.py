@@ -16,7 +16,7 @@ from models import Generator
 from models import Discriminator
 from utils import ReplayBuffer
 from utils import LambdaLR
-from utils import Logger
+from utils import LossLogger
 from utils import weights_init_normal
 from datasets import ImageDataset
 
@@ -115,6 +115,7 @@ losses_fname = os.path.join(output_dir, 'losses.csv')
 for epoch in range(opt.epoch, opt.n_epochs):
 
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
+    logger = LossLogger()
 
     for i, batch in progress_bar:
 
@@ -203,6 +204,23 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f}")
 
+        # Log the losses of each batch
+        logger.log({
+            'Loss_D': (loss_D_A + loss_D_B).item(),
+            'Loss_D_A': loss_D_A.item(),
+            'Loss_D_B': loss_D_B.item(),
+            'Loss_G': loss_G.item(),
+            'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+            'Loss_G_identity_A': loss_identity_A.item(),
+            'Loss_G_identity_B': loss_identity_B.item(),
+            'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+            'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+            'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+            'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+            'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+            'Loss_G_cycle_BAB': loss_cycle_BAB.item()
+        })
+
         # Save the sample images every print_freq
         if i % opt.print_freq == 0:
             vutils.save_image(real_A,
@@ -223,25 +241,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
                               normalize=True)
 
     # Save the losses at the end of each epoch
-    losses = {
-        'Loss_D':(loss_D_A + loss_D_B).item(),
-        'Loss_D_A': loss_D_A.item(),
-        'Loss_D_B': loss_D_B.item(),
-        'Loss_G': loss_G.item(),
-        'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
-        'Loss_G_identity_A': loss_identity_A.item(),
-        'Loss_G_identity_B': loss_identity_B.item(),
-        'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
-        'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
-        'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
-        'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
-        'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
-        'Loss_G_cycle_BAB': loss_cycle_BAB.item()
-    }
-
-    df = pd.DataFrame(data=losses, index=['epoch_{}'.format(epoch)])
-    with open(losses_fname, 'a') as csv_file:
-        df.to_csv(csv_file, index=True, header=True)
+    logger.save(epoch=epoch, batch=i)
 
     # Update learning rates
     lr_scheduler_G.step()
