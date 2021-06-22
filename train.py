@@ -3,10 +3,11 @@ import itertools
 import os.path
 
 import torchvision.transforms as transforms
+import torch
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
+from torchsummary import summary
 from PIL import Image
-import torch
 
 from models import Generator
 from models import Discriminator
@@ -45,6 +46,11 @@ netG_A2B = Generator(opt.input_nc, opt.output_nc)
 netG_B2A = Generator(opt.output_nc, opt.input_nc)
 netD_A = Discriminator(opt.input_nc)
 netD_B = Discriminator(opt.output_nc)
+
+print('netG_A2B:\n', netG_A2B)
+print(summary(netG_A2B, (3, 256, 256)))
+print('netD_A:\n', netD_A)
+print(summary(netD_A, (3, 256, 256)))
 
 if opt.cuda:
     netG_A2B.cuda()
