@@ -108,10 +108,11 @@ if not os.path.exists(weights_dir):
 ###### Training ######
 for epoch in range(opt.epoch, opt.n_epochs):
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    for i, data in progress_bar:
+    print('Total size of data:', len(dataloader))
+    for i, batch in progress_bar:
         # Set model input
-        real_A = Variable(input_A.copy_(data['A']))
-        real_B = Variable(input_B.copy_(data['B']))
+        real_A = Variable(input_A.copy_(batch['A']))
+        real_B = Variable(input_B.copy_(batch['B']))
 
         ###### Generators A2B and B2A ######
         optimizer_G.zero_grad()
