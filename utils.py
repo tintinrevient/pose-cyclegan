@@ -1,3 +1,4 @@
+import os
 import random
 import time
 import datetime
@@ -9,7 +10,6 @@ import torch
 from torch.autograd import Variable
 from visdom import Visdom
 
-from train import losses_fname
 
 def tensor2image(tensor):
     image = 127.5*(tensor[0].cpu().float().numpy() + 1.0)
@@ -132,8 +132,11 @@ class LossLogger():
             else:
                 self.losses[loss_name] += losses[loss_name]
 
-    def save(self, epoch, n_batches):
-        avg_losses_per_epoch = {loss_name:loss/n_batches for loss_name, loss in self.losses}
+    def save(self, fname, epoch, n_batches):
+        avg_losses_per_epoch = {loss_name:loss/n_batches for loss_name, loss in self.losses.items()}
         df = pd.DataFrame(data=avg_losses_per_epoch, index=['epoch_{}'.format(epoch)])
-        with open(losses_fname, 'a') as csv_file:
-            df.to_csv(csv_file, index=True, header=True)
+        with open(fname, 'a') as csv_file:
+            if os.stat(fname).st_size == 0:
+                df.to_csv(csv_file, index=True, header=True)
+            else:
+                df.to_csv(csv_file, index=True, header=False)

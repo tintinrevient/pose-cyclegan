@@ -1,7 +1,6 @@
 import argparse
 import itertools
 import os.path
-import pandas as pd
 
 import torch
 from torch.utils.data import DataLoader
@@ -48,9 +47,9 @@ netD_A = Discriminator(opt.input_nc)
 netD_B = Discriminator(opt.output_nc)
 
 print('netG_A2B:\n', netG_A2B)
-print(summary(netG_A2B, (3, 256, 256)))
+# print(summary(netG_A2B, (3, 256, 256)))
 print('netD_A:\n', netD_A)
-print(summary(netD_A, (3, 256, 256)))
+# print(summary(netD_A, (3, 256, 256)))
 
 if opt.cuda:
     netG_A2B.cuda()
@@ -109,6 +108,8 @@ if not os.path.exists(weights_dir):
 # Loss plot
 # logger = Logger(opt.n_epochs, len(dataloader))
 losses_fname = os.path.join(output_dir, 'losses.csv')
+with open(losses_fname, 'w') as csv_file:
+    pass
 #####################################
 
 ###### Training ######
@@ -241,7 +242,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
                               normalize=True)
 
     # Save the losses at the end of each epoch
-    logger.save(epoch=epoch, batch=i)
+    logger.save(fname=losses_fname, epoch=epoch, n_batches=len(dataloader))
 
     # Update learning rates
     lr_scheduler_G.step()
