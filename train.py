@@ -97,11 +97,12 @@ dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), tran
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 
 # Directories & files initialization
+# output
 output_dir = os.path.join('output', opt.dataset)
-weights_dir = os.path.join('weights', opt.dataset)
 if not os.path.exists(output_dir):
-    os.makedirs(os.path.join(output_dir, 'A'))
-    os.makedirs(os.path.join(output_dir, 'B'))
+    os.makedirs(output_dir)
+# weights
+weights_dir = os.path.join('weights', opt.dataset)
 if not os.path.exists(weights_dir):
     os.makedirs(weights_dir)
 
@@ -224,21 +225,51 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Save the sample images every print_freq
         if i % opt.print_freq == 0:
+
+            # Make the directory of each epoch
+            epoch_dir = os.path.join(output_dir, epoch)
+            if os.path.exists(epoch_dir):
+                os.makedirs(epoch_dir)
+
+            # real images
             vutils.save_image(real_A,
-                              f"{output_dir}/A/real_sample_epoch_{epoch}_batch_{i}.png",
+                              f"{epoch_dir}/A_real_batch_{i}.png",
                               normalize=True)
             vutils.save_image(real_B,
-                              f"{output_dir}/B/real_sample_epoch_{epoch}_batch_{i}.png",
+                              f"{epoch_dir}/B_real_batch_{i}.png",
                               normalize=True)
 
-            fake_image_A = 0.5 * (netG_B2A(real_B).data + 1.0)
-            fake_image_B = 0.5 * (netG_A2B(real_A).data + 1.0)
+            # fake images
+            fake_A_image = 0.5 * (fake_A.data + 1.0)
+            fake_B_image = 0.5 * (fake_B.data + 1.0)
 
-            vutils.save_image(fake_image_A.detach(),
-                              f"{output_dir}/A/fake_sample_epoch_{epoch}_batch_{i}.png",
+            vutils.save_image(fake_A_image.detach(),
+                              f"{epoch_dir}/A_fake_G_B2A_batch_{i}.png",
                               normalize=True)
-            vutils.save_image(fake_image_B.detach(),
-                              f"{output_dir}/B/fake_sample_epoch_{epoch}_batch_{i}.png",
+            vutils.save_image(fake_B_image.detach(),
+                              f"{epoch_dir}/B_fake_G_A2B_batch_{i}.png",
+                              normalize=True)
+
+            # identity images
+            same_A_image = 0.5 * (same_A.data + 1.0)
+            same_B_image = 0.5 * (same_B.data + 1.0)
+
+            vutils.save_image(same_A_image.detach(),
+                              f"{epoch_dir}/A_same_G_B2A_batch_{i}.png",
+                              normalize=True)
+            vutils.save_image(same_B_image.detach(),
+                              f"{epoch_dir}/B_same_G_A2B_batch_{i}.png",
+                              normalize=True)
+
+            # cycle images
+            recovered_A_image = 0.5 * (recovered_A.data + 1.0)
+            recovered_B_image = 0.5 * (recovered_B.data + 1.0)
+
+            vutils.save_image(recovered_A_image.detach(),
+                              f"{epoch_dir}/A_recovered_G_ABA_batch_{i}.png",
+                              normalize=True)
+            vutils.save_image(recovered_B_image.detach(),
+                              f"{epoch_dir}/B_recovered_G_BAB_batch_{i}.png",
                               normalize=True)
 
     # Save the losses at the end of each epoch
