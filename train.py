@@ -1,13 +1,16 @@
 import argparse
 import itertools
 import os.path
+import pandas as pd
 
-import torchvision.transforms as transforms
 import torch
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
+import torchvision.transforms as transforms
+import torchvision.utils as vutils
 from torchsummary import summary
 from PIL import Image
+from tqdm import tqdm
 
 from models import Generator
 from models import Discriminator
@@ -16,9 +19,6 @@ from utils import LambdaLR
 from utils import Logger
 from utils import weights_init_normal
 from datasets import ImageDataset
-
-from tqdm import tqdm
-import torchvision.utils as vutils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
@@ -90,17 +90,14 @@ fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
 transforms_ = [ transforms.Resize(int(opt.size*1.12), Image.BICUBIC), 
-                transforms.RandomCrop(opt.size), 
+                transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 
-# Loss plot
-# logger = Logger(opt.n_epochs, len(dataloader))
-
-# Directories
+# Directories & files initialization
 output_dir = os.path.join('output', opt.dataset)
 weights_dir = os.path.join('weights', opt.dataset)
 if not os.path.exists(output_dir):
@@ -109,13 +106,18 @@ if not os.path.exists(output_dir):
 if not os.path.exists(weights_dir):
     os.makedirs(weights_dir)
 
+# Loss plot
+# logger = Logger(opt.n_epochs, len(dataloader))
+losses_fname = os.path.join(output_dir, 'losses.csv')
 #####################################
 
 ###### Training ######
 for epoch in range(opt.epoch, opt.n_epochs):
+
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    print('Total size of data:', len(dataloader))
+
     for i, batch in progress_bar:
+
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
         real_B = Variable(input_B.copy_(batch['B']))
@@ -152,7 +154,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_G.backward()
         
         optimizer_G.step()
-        ###################################
+        ####################################
 
         ###### Discriminator A ######
         optimizer_D_A.zero_grad()
@@ -171,7 +173,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_D_A.backward()
 
         optimizer_D_A.step()
-        ###################################
+        #############################
 
         ###### Discriminator B ######
         optimizer_D_B.zero_grad()
@@ -190,33 +192,56 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_D_B.backward()
 
         optimizer_D_B.step()
-        ###################################
+        #############################
 
+        # Display the losses
         progress_bar.set_description(
             f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
             f"Loss_D: {(loss_D_A + loss_D_B).item():.4f} "
             f"Loss_G: {loss_G.item():.4f} "
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
-            f"loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
-            f"loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f}")
+            f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
+            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f}")
 
+        # Save the sample images every print_freq
         if i % opt.print_freq == 0:
             vutils.save_image(real_A,
-                              f"{output_dir}/A/real_sample_epoch_{epoch}.png",
+                              f"{output_dir}/A/real_sample_epoch_{epoch}_batch_{i}.png",
                               normalize=True)
             vutils.save_image(real_B,
-                              f"{output_dir}/B/real_sample_epoch_{epoch}.png",
+                              f"{output_dir}/B/real_sample_epoch_{epoch}_batch_{i}.png",
                               normalize=True)
 
             fake_image_A = 0.5 * (netG_B2A(real_B).data + 1.0)
             fake_image_B = 0.5 * (netG_A2B(real_A).data + 1.0)
 
             vutils.save_image(fake_image_A.detach(),
-                              f"{output_dir}/A/fake_sample_epoch_{epoch}.png",
+                              f"{output_dir}/A/fake_sample_epoch_{epoch}_batch_{i}.png",
                               normalize=True)
             vutils.save_image(fake_image_B.detach(),
-                              f"{output_dir}/B/fake_sample_epoch_{epoch}.png",
+                              f"{output_dir}/B/fake_sample_epoch_{epoch}_batch_{i}.png",
                               normalize=True)
+
+    # Save the losses at the end of each epoch
+    losses = {
+        'Loss_D':(loss_D_A + loss_D_B).item(),
+        'Loss_D_A': loss_D_A.item(),
+        'Loss_D_B': loss_D_B.item(),
+        'Loss_G': loss_G.item(),
+        'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+        'Loss_G_identity_A': loss_identity_A.item(),
+        'Loss_G_identity_B': loss_identity_B.item(),
+        'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+        'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+        'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+        'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+        'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+        'Loss_G_cycle_BAB': loss_cycle_BAB.item()
+    }
+
+    df = pd.DataFrame(data=losses, index=['epoch_{}'.format(epoch)])
+    with open(losses_fname, 'a') as csv_file:
+        df.to_csv(csv_file, index=True, header=True)
 
     # Update learning rates
     lr_scheduler_G.step()
@@ -228,5 +253,4 @@ for epoch in range(opt.epoch, opt.n_epochs):
     torch.save(netG_B2A.state_dict(), os.path.join(weights_dir, 'netG_B2A.pth'))
     torch.save(netD_A.state_dict(), os.path.join(weights_dir, 'netD_A.pth'))
     torch.save(netD_B.state_dict(), os.path.join(weights_dir, 'netD_B.pth'))
-
 ######################

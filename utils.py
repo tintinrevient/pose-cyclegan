@@ -8,11 +8,13 @@ import torch
 from visdom import Visdom
 import numpy as np
 
+
 def tensor2image(tensor):
     image = 127.5*(tensor[0].cpu().float().numpy() + 1.0)
     if image.shape[0] == 1:
         image = np.tile(image, (3,1,1))
     return image.astype(np.uint8)
+
 
 class Logger():
     def __init__(self, n_epochs, batches_epoch):
@@ -74,7 +76,6 @@ class Logger():
         else:
             self.batch += 1
 
-        
 
 class ReplayBuffer():
     def __init__(self, max_size=50):
@@ -98,6 +99,7 @@ class ReplayBuffer():
                     to_return.append(element)
         return Variable(torch.cat(to_return))
 
+
 class LambdaLR():
     def __init__(self, n_epochs, offset, decay_start_epoch):
         assert ((n_epochs - decay_start_epoch) > 0), "Decay must start before the training session ends!"
@@ -108,6 +110,7 @@ class LambdaLR():
     def step(self, epoch):
         return 1.0 - max(0, epoch + self.offset - self.decay_start_epoch)/(self.n_epochs - self.decay_start_epoch)
 
+
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -115,4 +118,3 @@ def weights_init_normal(m):
     elif classname.find('BatchNorm2d') != -1:
         torch.nn.init.normal(m.weight.data, 1.0, 0.02)
         torch.nn.init.constant(m.bias.data, 0.0)
-
