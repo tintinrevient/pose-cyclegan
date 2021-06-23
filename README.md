@@ -56,5 +56,5 @@ python generate.py --input_img pix/nude.jpg --generator B2A
 ## Losses
 
 <p float="left">
-    <img src="pix/loss.png" height="500" />
+    <img src="pix/loss.png" height="400" />
 </p>
