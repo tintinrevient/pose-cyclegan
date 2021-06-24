@@ -61,6 +61,7 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+# PatchGAN discriminator
 class Discriminator(nn.Module):
     def __init__(self, input_nc):
         super(Discriminator, self).__init__()
@@ -87,6 +88,7 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
-        x =  self.model(x)
+        return self.model(x)
+        # x =  self.model(x)
         # Average pooling and flatten
-        return F.avg_pool2d(x, x.size()[2:]).view(x.size()[0], -1)
+        # return F.avg_pool2d(x, x.size()[2:]).view(x.size()[0], -1)

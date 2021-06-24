@@ -63,7 +63,7 @@ netD_A.apply(weights_init_normal)
 netD_B.apply(weights_init_normal)
 
 # Losses
-criterion_GAN = torch.nn.MSELoss()
+criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
 
@@ -164,12 +164,14 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Real loss
         pred_real = netD_A(real_A)
-        loss_D_real = criterion_GAN(pred_real, target_real)
+        print('TEST pred_real:', pred_real)
+        print('target_real:', target_real.expand_as(pred_real))
+        loss_D_real = criterion_GAN(pred_real, target_real.expand_as(pred_real))
 
         # Fake loss
         fake_A = fake_A_buffer.push_and_pop(fake_A)
         pred_fake = netD_A(fake_A.detach())
-        loss_D_fake = criterion_GAN(pred_fake, target_fake)
+        loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake))
 
         # Total loss
         loss_D_A = (loss_D_real + loss_D_fake)*0.5
