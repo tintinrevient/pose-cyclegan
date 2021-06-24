@@ -1,7 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ResidualBlock(nn.Module):
+
     def __init__(self, in_features):
         super(ResidualBlock, self).__init__()
 
@@ -18,7 +20,9 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return x + self.conv_block(x)
 
+
 class Generator(nn.Module):
+
     def __init__(self, input_nc, output_nc, n_residual_blocks=9):
         super(Generator, self).__init__()
 
@@ -61,8 +65,9 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# PatchGAN discriminator
+
 class Discriminator(nn.Module):
+
     def __init__(self, input_nc):
         super(Discriminator, self).__init__()
 
@@ -89,6 +94,25 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-        # x =  self.model(x)
+
         # Average pooling and flatten
+        # x =  self.model(x)
         # return F.avg_pool2d(x, x.size()[2:]).view(x.size()[0], -1)
+
+# PatchGAN discriminator
+class PatchDiscriminator(Discriminator):
+
+    def __init__(self, input_nc):
+        super().__init__(input_nc)
+
+    def forward(self, input):
+        B, C, H, W = input.size(0), input.size(1), input.size(2), input.size(3)
+        size = 32
+        # size = 256 # the same as Discriminator
+
+        Y = H // size
+        X = W // size
+        input = input.view(B, C, Y, size, X, size)
+        input = input.permute(0, 2, 4, 1, 3, 5).contiguous().view(B * Y * X, C, size, size)
+
+        return super().forward(input)
