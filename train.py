@@ -47,10 +47,10 @@ netG_B2A = Generator(opt.output_nc, opt.input_nc)
 netD_A = PatchDiscriminator(opt.input_nc)
 netD_B = PatchDiscriminator(opt.output_nc)
 
-print('netG_A2B:\n', netG_A2B)
-# print(summary(netG_A2B, (3, 256, 256)))
-print('netD_A:\n', netD_A)
-# print(summary(netD_A, (3, 256, 256)))
+# print('netG_A2B:\n', netG_A2B)
+print(summary(netG_A2B, (3, 256, 256)))
+# print('netD_A:\n', netD_A)
+print(summary(netD_A, (3, 256, 256)))
 
 if opt.cuda:
     netG_A2B.cuda()
