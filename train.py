@@ -166,10 +166,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Real loss
         pred_real = netD_A(real_A)
         loss_D_real = criterion_GAN(pred_real, target_real.expand_as(pred_real)).mean()
-        print(pred_real.shape)
-        print(target_real.expand_as(pred_real).shape)
-        print('mse:', criterion_GAN(pred_real, target_real.expand_as(pred_real)))
-        print('loss_D_real:', loss_D_real)
 
         # Fake loss
         fake_A = fake_A_buffer.push_and_pop(fake_A)
