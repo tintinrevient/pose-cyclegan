@@ -12,13 +12,17 @@ from visdom import Visdom
 
 
 def tensor2image(tensor):
+
     image = 127.5*(tensor[0].cpu().float().numpy() + 1.0)
+
     if image.shape[0] == 1:
         image = np.tile(image, (3,1,1))
+
     return image.astype(np.uint8)
 
 
 class Logger():
+
     def __init__(self, n_epochs, batches_epoch):
         self.viz = Visdom()
         self.n_epochs = n_epochs
@@ -79,6 +83,7 @@ class Logger():
 
 
 class ReplayBuffer():
+
     def __init__(self, max_size=50):
         assert (max_size > 0), 'Empty buffer or trying to create a black hole. Be careful.'
         self.max_size = max_size
@@ -102,6 +107,7 @@ class ReplayBuffer():
 
 
 class LambdaLR():
+
     def __init__(self, n_epochs, offset, decay_start_epoch):
         assert ((n_epochs - decay_start_epoch) > 0), "Decay must start before the training session ends!"
         self.n_epochs = n_epochs
@@ -113,15 +119,19 @@ class LambdaLR():
 
 
 def weights_init_normal(m):
+
     classname = m.__class__.__name__
+
     if classname.find('Conv') != -1:
-        torch.nn.init.normal(m.weight.data, 0.0, 0.02)
+        torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
+
     elif classname.find('BatchNorm2d') != -1:
-        torch.nn.init.normal(m.weight.data, 1.0, 0.02)
-        torch.nn.init.constant(m.bias.data, 0.0)
+        torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
+        torch.nn.init.constant_(m.bias.data, 0.0)
 
 
 class LossLogger():
+
     def __init__(self):
         self.losses = {}
 
