@@ -11,12 +11,8 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator
-from models import Discriminator
-from utils import ReplayBuffer
-from utils import LambdaLR
-from utils import LossLogger
-from utils import weights_init_normal
+from models import Generator, Discriminator, PatchDiscriminator
+from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
 
 parser = argparse.ArgumentParser()
@@ -41,10 +37,15 @@ if torch.cuda.is_available() and not opt.cuda:
 
 ###### Definition of variables ######
 # Networks
+# Generators
 netG_A2B = Generator(opt.input_nc, opt.output_nc)
 netG_B2A = Generator(opt.output_nc, opt.input_nc)
-netD_A = Discriminator(opt.input_nc)
-netD_B = Discriminator(opt.output_nc)
+# Discriminators
+# netD_A = Discriminator(opt.input_nc)
+# netD_B = Discriminator(opt.output_nc)
+# PatchGAN discriminators
+netD_A = PatchDiscriminator(opt.input_nc)
+netD_B = PatchDiscriminator(opt.output_nc)
 
 print('netG_A2B:\n', netG_A2B)
 # print(summary(netG_A2B, (3, 256, 256)))
@@ -165,13 +166,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Real loss
         pred_real = netD_A(real_A)
         loss_D_real = criterion_GAN(pred_real, target_real.expand_as(pred_real)).mean()
-        print('loss_D_real:', loss_D_real)
 
         # Fake loss
         fake_A = fake_A_buffer.push_and_pop(fake_A)
         pred_fake = netD_A(fake_A.detach())
         loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake)).mean()
-        print('loss_D_fake:', loss_D_fake)
 
         # Total loss
         loss_D_A = (loss_D_real + loss_D_fake)*0.5
