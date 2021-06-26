@@ -11,7 +11,7 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator, Discriminator, PatchDiscriminator, PatchMLP
+from models import Generator, Discriminator, PatchDiscriminator, PatchMLP, PatchSample
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
@@ -63,20 +63,34 @@ netD_B = PatchDiscriminator(opt.output_nc)
 # print(summary(netD_A, (3, 256, 256)))
 
 # Patch MLP
-net_MLP = PatchMLP()
+netMLP_1 = PatchMLP(input_nc=3)
+netMLP_2 = PatchMLP(input_nc=128)
+netMLP_3 = PatchMLP(input_nc=256)
+netMLP_4 = PatchMLP(input_nc=256)
+netMLP_5 = PatchMLP(input_nc=256)
 
 if opt.cuda:
     netG_A2B.cuda()
     netG_B2A.cuda()
     netD_A.cuda()
     netD_B.cuda()
-    net_MLP.cuda()
+    netMLP_1.cuda()
+    netMLP_2.cuda()
+    netMLP_3.cuda()
+    netMLP_4.cuda()
+    netMLP_5.cuda()
 
 netG_A2B.apply(weights_init_normal)
 netG_B2A.apply(weights_init_normal)
 netD_A.apply(weights_init_normal)
 netD_B.apply(weights_init_normal)
-net_MLP.apply(weights_init_normal)
+netMLP_1.apply(weights_init_normal)
+netMLP_2.apply(weights_init_normal)
+netMLP_3.apply(weights_init_normal)
+netMLP_4.apply(weights_init_normal)
+netMLP_5.apply(weights_init_normal)
+
+netMLP = PatchSample(netMLPs = [netMLP_1, netMLP_2, netMLP_3, netMLP_4, netMLP_5])
 
 # Losses
 criterion_GAN = torch.nn.MSELoss() # LSGAN
@@ -92,12 +106,20 @@ optimizer_G = torch.optim.Adam(itertools.chain(netG_A2B.parameters(), netG_B2A.p
                                 lr=opt.lr, betas=(0.5, 0.999))
 optimizer_D_A = torch.optim.Adam(netD_A.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_D_B = torch.optim.Adam(netD_B.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-optimizer_MLP = torch.optim.Adam(net_MLP.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP1 = torch.optim.Adam(netMLP_1.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP2 = torch.optim.Adam(netMLP_2.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP3 = torch.optim.Adam(netMLP_3.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP4 = torch.optim.Adam(netMLP_4.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP5 = torch.optim.Adam(netMLP_5.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 
 lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optimizer_D_B, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP1 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP1, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP2 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP2, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP3 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP3, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP4 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP4, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP5 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP5, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 
 # Inputs & targets memory allocation
 Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
@@ -141,8 +163,15 @@ def calculate_NCE_loss(source, target):
     feat_k = netG_A2B(source, opt.nce_layers, encode_only=True)
     feat_q = netG_A2B(target, opt.nce_layers, encode_only=True)
 
-    feat_k_pool, sample_ids = net_MLP(feat_k, opt.num_patches, None)
-    feat_q_pool, _ = net_MLP(feat_q, opt.num_patches, sample_ids)
+    # print('feat_k size:', len(feat_k))
+    # print('feat_k shape:', feat_k[0].shape)
+
+    feat_k_pool, sample_ids = netMLP(feat_k, opt.num_patches, None)
+    # print('feat_k_pool size:', len(feat_k_pool))
+    # print('feat_k_pool shape:', feat_k_pool[0].shape)
+    # print('sample_ids size:', len(sample_ids))
+    # print('sample_ids:', sample_ids[0])
+    feat_q_pool, _ = netMLP(feat_q, opt.num_patches, sample_ids)
 
     total_nce_loss = 0.0
     for f_q, f_k, crit, nce_layer in zip(feat_q_pool, feat_k_pool, criterion_NCE, opt.nce_layers):
@@ -150,6 +179,8 @@ def calculate_NCE_loss(source, target):
         total_nce_loss += loss.mean()
 
     loss_NCE = total_nce_loss / len(opt.nce_layers)
+
+    return loss_NCE
 
 ###### Training ######
 
@@ -166,7 +197,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         ###### Generators A2B and B2A ######
         optimizer_G.zero_grad()
-        optimizer_MLP.zero_grad()
+        optimizer_MLP1.zero_grad()
+        optimizer_MLP2.zero_grad()
+        optimizer_MLP3.zero_grad()
+        optimizer_MLP4.zero_grad()
+        optimizer_MLP5.zero_grad()
 
         # Identity loss
         # G_A2B(B) should equal B if real B is fed
@@ -202,7 +237,12 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_G.backward()
         
         optimizer_G.step()
-        optimizer_MLP.step()
+        optimizer_MLP1.step()
+        optimizer_MLP2.step()
+        optimizer_MLP3.step()
+        optimizer_MLP4.step()
+        optimizer_MLP5.step()
+
         ####################################
 
         ###### Discriminator A ######
@@ -211,13 +251,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Real loss
         pred_real = netD_A(real_A)
         loss_D_real = criterion_GAN(pred_real, target_real.expand_as(pred_real)).mean()
-        print('loss_D_real:', loss_D_real)
 
         # Fake loss
         fake_A = fake_A_buffer.push_and_pop(fake_A)
         pred_fake = netD_A(fake_A.detach())
         loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake)).mean()
-        print('loss_D_fake:', loss_D_fake)
 
         # Total loss
         loss_D_A = (loss_D_real + loss_D_fake)*0.5
@@ -232,13 +270,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Real loss
         pred_real = netD_B(real_B)
         loss_D_real = criterion_GAN(pred_real, target_real.expand_as(pred_real)).mean()
-        print('loss_D_real:', loss_D_real)
-        
+
         # Fake loss
         fake_B = fake_B_buffer.push_and_pop(fake_B)
         pred_fake = netD_B(fake_B.detach())
         loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake)).mean()
-        print('loss_D_fake:', loss_D_fake)
 
         # Total loss
         loss_D_B = (loss_D_real + loss_D_fake)*0.5
@@ -254,7 +290,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G: {loss_G.item():.4f} "
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
-            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f}")
+            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
+            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
@@ -270,7 +307,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
             'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
             'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
-            'Loss_G_cycle_BAB': loss_cycle_BAB.item()
+            'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
+            'Loss_G_NCE': loss_NCE.item()
         })
 
         # Save the sample images every print_freq

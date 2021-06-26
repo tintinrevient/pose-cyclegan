@@ -138,16 +138,37 @@ class PatchDiscriminator(Discriminator):
 # Patch MLP
 # Potential issues: currently, we use the same patch_ids for multiple images in the batch
 class PatchMLP(nn.Module):
-
-    def __init__(self, input_nc=256):
+    def __init__(self, input_nc):
         super(PatchMLP, self).__init__()
         self.model = nn.Sequential(*[nn.Linear(input_nc, 256), nn.ReLU(), nn.Linear(256, 256)])
 
+    def forward(self, x):
+        return self.model(x)
+
+class PatchSample(nn.Module):
+
+    def __init__(self, netMLPs):
+        super(PatchSample, self).__init__()
+        self.netMLPs = netMLPs
+        # print('netMLPs size:', len(netMLPs))
+
     def forward(self, feats, num_patches=64, patch_ids=None):
+
+        # print('feats size:', len(feats))
+        # print('feats 0 shape:', feats[0].shape)
+        # print('feats 1 shape:', feats[1].shape)
+        # print('feats 2 shape:', feats[2].shape)
+        # print('num of patches:', num_patches)
+        # print('patch ids:', patch_ids)
+
         return_ids = []
         return_feats = []
 
         for feat_id, feat in enumerate(feats):
+
+            # print('feat_id:', feat_id)
+            # print('feat shape', feat.shape)
+            # print('num_patches:', num_patches)
 
             B, H, W = feat.shape[0], feat.shape[2], feat.shape[3]
             feat_reshape = feat.permute(0, 2, 3, 1).flatten(1, 2)
@@ -159,17 +180,25 @@ class PatchMLP(nn.Module):
                     patch_id = torch.randperm(feat_reshape.shape[1], device=feats[0].device)
                     patch_id = patch_id[:int(min(num_patches, patch_id.shape[0]))]  # .to(patch_ids.device)
                 x_sample = feat_reshape[:, patch_id, :].flatten(0, 1)  # reshape(-1, x.shape[1])
+                # print('inner x_sample shape:', x_sample.shape)
             else:
                 x_sample = feat_reshape
                 patch_id = []
 
-            x_sample = self.model(x_sample)
+            mlp = self.netMLPs[feat_id]
+            # print('feat_id:', feat_id)
+            # print(mlp)
+            x_sample = mlp(x_sample)
+
+            # print('outer x_sample shape:', x_sample.shape)
 
             return_ids.append(patch_id)
             x_sample = x_sample.div(torch.norm(x_sample))
 
             if num_patches == 0:
                 x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
+
+            # print('x_sample shape:', x_sample.shape)
 
             return_feats.append(x_sample)
 
