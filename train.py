@@ -32,6 +32,7 @@ parser.add_argument('--print_freq', type=int, default=100, help='every how many 
 parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16', help='compute NCE loss on which layers')
 parser.add_argument('--nce_temperature', type=float, default=0.07, help='temperature for NCE loss')
 parser.add_argument('--nce_lambda', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
+parser.add_argument('--num_patches', type=int, default=256, help='number of patches per layer')
 
 opt = parser.parse_args()
 opt.nce_layers = [int(i) for i in opt.nce_layers.split(',')]
