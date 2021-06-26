@@ -11,8 +11,9 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator, Discriminator, PatchDiscriminator
-from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
+from models import Generator, Discriminator, PatchDiscriminator, PatchMLP
+from losses import PatchNCELoss
+from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal, str2bool
 from datasets import ImageDataset
 
 parser = argparse.ArgumentParser()
@@ -28,21 +29,29 @@ parser.add_argument('--output_nc', type=int, default=3, help='number of channels
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
 parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
 parser.add_argument('--print_freq', type=int, default=100, help='every how many images to save the sample images')
+parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16', help='compute NCE loss on which layers')
+parser.add_argument('--nce_temperature', type=float, default=0.07, help='temperature for NCE loss')
+parser.add_argument('--nce_lambda', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
 
 opt = parser.parse_args()
+opt.nce_layers = [int(i) for i in opt.nce_layers.split(',')]
 print(opt)
 
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 ###### Definition of variables ######
+
 # Networks
+
 # Generators
 netG_A2B = Generator(opt.input_nc, opt.output_nc)
 netG_B2A = Generator(opt.output_nc, opt.input_nc)
+
 # Discriminators
 # netD_A = Discriminator(opt.input_nc)
 # netD_B = Discriminator(opt.output_nc)
+
 # PatchGAN discriminators
 netD_A = PatchDiscriminator(opt.input_nc)
 netD_B = PatchDiscriminator(opt.output_nc)
@@ -52,31 +61,42 @@ netD_B = PatchDiscriminator(opt.output_nc)
 # print('netD_A:\n', netD_A)
 # print(summary(netD_A, (3, 256, 256)))
 
+# Patch MLP
+net_MLP = PatchMLP()
+
 if opt.cuda:
     netG_A2B.cuda()
     netG_B2A.cuda()
     netD_A.cuda()
     netD_B.cuda()
+    net_MLP.cuda()
 
 netG_A2B.apply(weights_init_normal)
 netG_B2A.apply(weights_init_normal)
 netD_A.apply(weights_init_normal)
 netD_B.apply(weights_init_normal)
+net_MLP.apply(weights_init_normal)
 
 # Losses
 criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
 
+criterion_NCE = []
+for nce_layer in opt.nce_layers:
+    criterion_NCE.append(PatchNCELoss(opt).cuda() if opt.cuda else PatchNCELoss(opt))
+
 # Optimizers & LR schedulers
 optimizer_G = torch.optim.Adam(itertools.chain(netG_A2B.parameters(), netG_B2A.parameters()),
                                 lr=opt.lr, betas=(0.5, 0.999))
 optimizer_D_A = torch.optim.Adam(netD_A.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_D_B = torch.optim.Adam(netD_B.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_MLP = torch.optim.Adam(net_MLP.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 
 lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optimizer_D_B, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 
 # Inputs & targets memory allocation
 Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
@@ -112,9 +132,26 @@ if not os.path.exists(weights_dir):
 losses_fname = os.path.join(output_dir, 'losses.csv')
 with open(losses_fname, 'w') as csv_file:
     pass
+
 #####################################
 
+def calculate_NCE_loss(opt, source, target):
+
+    feat_k = netG_A2B(source, opt.nce_layers, encode_only=True)
+    feat_q = netG_A2B(target, opt.nce_layers, encode_only=True)
+
+    feat_k_pool, sample_ids = net_MLP(feat_k, opt.num_patches, None)
+    feat_q_pool, _ = net_MLP(feat_q, opt.num_patches, sample_ids)
+
+    total_nce_loss = 0.0
+    for f_q, f_k, crit, nce_layer in zip(feat_q_pool, feat_k_pool, criterion_NCE, opt.nce_layers):
+        loss = crit(f_q, f_k) * opt.nce_lambda
+        total_nce_loss += loss.mean()
+
+    loss_NCE = total_nce_loss / len(opt.nce_layers)
+
 ###### Training ######
+
 for epoch in range(opt.epoch, opt.n_epochs):
 
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
@@ -128,6 +165,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         ###### Generators A2B and B2A ######
         optimizer_G.zero_grad()
+        optimizer_MLP.zero_grad()
 
         # Identity loss
         # G_A2B(B) should equal B if real B is fed
@@ -153,11 +191,17 @@ for epoch in range(opt.epoch, opt.n_epochs):
         recovered_B = netG_A2B(fake_A)
         loss_cycle_BAB = criterion_cycle(recovered_B, real_B)*10.0
 
+        # NCE loss
+        loss_NCE_A = calculate_NCE_loss(real_A, fake_B)
+        loss_NCE_B = calculate_NCE_loss(real_B, same_B)
+        loss_NCE = loss_NCE_A + loss_NCE_B
+
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
         loss_G.backward()
         
         optimizer_G.step()
+        optimizer_MLP.step()
         ####################################
 
         ###### Discriminator A ######
