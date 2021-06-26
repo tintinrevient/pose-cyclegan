@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from models import Generator, Discriminator, PatchDiscriminator, PatchMLP
 from losses import PatchNCELoss
-from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal, str2bool
+from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
 
 parser = argparse.ArgumentParser()
@@ -135,7 +135,7 @@ with open(losses_fname, 'w') as csv_file:
 
 #####################################
 
-def calculate_NCE_loss(opt, source, target):
+def calculate_NCE_loss(source, target):
 
     feat_k = netG_A2B(source, opt.nce_layers, encode_only=True)
     feat_q = netG_A2B(target, opt.nce_layers, encode_only=True)
