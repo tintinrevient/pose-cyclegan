@@ -90,8 +90,6 @@ netMLP_3.apply(weights_init_normal)
 netMLP_4.apply(weights_init_normal)
 netMLP_5.apply(weights_init_normal)
 
-netMLP = PatchSample(netMLPs = [netMLP_1, netMLP_2, netMLP_3, netMLP_4, netMLP_5])
-
 # Losses
 criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
@@ -160,17 +158,12 @@ with open(losses_fname, 'w') as csv_file:
 
 def calculate_NCE_loss(source, target):
 
+    netMLP = PatchSample(netMLPs=[netMLP_1, netMLP_2, netMLP_3, netMLP_4, netMLP_5])
+
     feat_k = netG_A2B(source, opt.nce_layers, encode_only=True)
     feat_q = netG_A2B(target, opt.nce_layers, encode_only=True)
 
-    # print('feat_k size:', len(feat_k))
-    # print('feat_k shape:', feat_k[0].shape)
-
     feat_k_pool, sample_ids = netMLP(feat_k, opt.num_patches, None)
-    # print('feat_k_pool size:', len(feat_k_pool))
-    # print('feat_k_pool shape:', feat_k_pool[0].shape)
-    # print('sample_ids size:', len(sample_ids))
-    # print('sample_ids:', sample_ids[0])
     feat_q_pool, _ = netMLP(feat_q, opt.num_patches, sample_ids)
 
     total_nce_loss = 0.0

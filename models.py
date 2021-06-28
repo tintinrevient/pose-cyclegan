@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torchvision.utils import save_image
 from utils import weights_init_normal
 
 
@@ -117,6 +117,7 @@ class Discriminator(nn.Module):
         # x =  self.model(x)
         # return F.avg_pool2d(x, x.size()[2:]).view(x.size()[0], -1)
 
+
 # PatchGAN discriminator
 class PatchDiscriminator(Discriminator):
 
@@ -135,6 +136,7 @@ class PatchDiscriminator(Discriminator):
 
         return super().forward(input)
 
+
 # Patch MLP
 # Potential issues: currently, we use the same patch_ids for multiple images in the batch
 class PatchMLP(nn.Module):
@@ -145,30 +147,39 @@ class PatchMLP(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+
+class Normalize(nn.Module):
+
+    def __init__(self, power=2):
+        super(Normalize, self).__init__()
+        self.power = power
+
+    def forward(self, x):
+        norm = x.pow(self.power).sum(1, keepdim=True).pow(1. / self.power)
+        out = x.div(norm)
+        return out
+
+
 class PatchSample(nn.Module):
 
     def __init__(self, netMLPs):
         super(PatchSample, self).__init__()
         self.netMLPs = netMLPs
-        # print('netMLPs size:', len(netMLPs))
+        self.l2norm = Normalize(2)
+
+        # Debug - Check whether each MLP network has been updated
+        # network_id = 2
+        # for name, param in netMLPs[network_id].named_parameters():
+        #     if param.requires_grad:
+        #         print(name, param.data.shape)
+        #         print(name, param.data)
 
     def forward(self, feats, num_patches=64, patch_ids=None):
-
-        # print('feats size:', len(feats))
-        # print('feats 0 shape:', feats[0].shape)
-        # print('feats 1 shape:', feats[1].shape)
-        # print('feats 2 shape:', feats[2].shape)
-        # print('num of patches:', num_patches)
-        # print('patch ids:', patch_ids)
 
         return_ids = []
         return_feats = []
 
         for feat_id, feat in enumerate(feats):
-
-            # print('feat_id:', feat_id)
-            # print('feat shape', feat.shape)
-            # print('num_patches:', num_patches)
 
             B, H, W = feat.shape[0], feat.shape[2], feat.shape[3]
             feat_reshape = feat.permute(0, 2, 3, 1).flatten(1, 2)
@@ -180,25 +191,23 @@ class PatchSample(nn.Module):
                     patch_id = torch.randperm(feat_reshape.shape[1], device=feats[0].device)
                     patch_id = patch_id[:int(min(num_patches, patch_id.shape[0]))]  # .to(patch_ids.device)
                 x_sample = feat_reshape[:, patch_id, :].flatten(0, 1)  # reshape(-1, x.shape[1])
-                # print('inner x_sample shape:', x_sample.shape)
             else:
                 x_sample = feat_reshape
                 patch_id = []
 
             mlp = self.netMLPs[feat_id]
-            # print('feat_id:', feat_id)
-            # print(mlp)
             x_sample = mlp(x_sample)
 
-            # print('outer x_sample shape:', x_sample.shape)
-
             return_ids.append(patch_id)
-            x_sample = x_sample.div(torch.norm(x_sample))
+            x_sample = self.l2norm(x_sample)
 
             if num_patches == 0:
                 x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
 
-            # print('x_sample shape:', x_sample.shape)
+            # Debug - Save the embedding space image for each feature
+            # print('x_sample {} shape:'.format(feat_id), x_sample.shape)
+            # sample_img = 0.5 * (x_sample.data + 1.0)
+            # save_image(sample_img, 'sample-{}.png'.format(feat_id))
 
             return_feats.append(x_sample)
 
