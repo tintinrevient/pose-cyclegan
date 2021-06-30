@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class PatchNCELoss(nn.Module):
     def __init__(self, opt):
         super().__init__()

@@ -11,7 +11,7 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator, Discriminator
+from models import Generator, PatchDiscriminator
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
 
@@ -23,6 +23,7 @@ parser.add_argument('--dataset', type=str, default='horse2zebra', help='root dir
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=100, help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
+parser.add_argument('--patch_size', type=int, default=32, help='size of the patch for PatchGAN discriminator')
 parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
@@ -46,9 +47,9 @@ if torch.cuda.is_available() and not opt.cuda:
 netG_A2B = Generator(opt.input_nc, opt.output_nc)
 netG_B2A = Generator(opt.output_nc, opt.input_nc)
 
-## Discriminators
-netD_A = Discriminator(opt.input_nc)
-netD_B = Discriminator(opt.output_nc)
+## PatchGAN discriminators
+netD_A = PatchDiscriminator(opt.input_nc, opt.patch_size)
+netD_B = PatchDiscriminator(opt.output_nc, opt.patch_size)
 
 # print('netG_A2B:\n', netG_A2B)
 # print(summary(netG_A2B, (3, 256, 256)))

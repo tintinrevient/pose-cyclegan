@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.utils import save_image
-from utils import weights_init_normal
 
 
 class ResidualBlock(nn.Module):
@@ -121,12 +120,13 @@ class Discriminator(nn.Module):
 # PatchGAN discriminator
 class PatchDiscriminator(Discriminator):
 
-    def __init__(self, input_nc):
+    def __init__(self, input_nc, patch_size):
         super().__init__(input_nc)
+        self.patch_size = patch_size
 
     def forward(self, input):
         B, C, H, W = input.size(0), input.size(1), input.size(2), input.size(3)
-        size = 32
+        size = self.patch_size
         # size = 256 # the same as Discriminator
 
         Y = H // size
