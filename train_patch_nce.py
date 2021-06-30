@@ -133,12 +133,12 @@ dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), tran
 
 # Directories + Files: Initialization
 ## Output
-output_dir = os.path.join('output', opt.dataset)
+output_dir = os.path.join('output', opt.dataset, 'nce{}'.format(opt.num_patches))
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 ## Weights
-weights_dir = os.path.join('weights', opt.dataset)
+weights_dir = os.path.join('weights', opt.dataset, 'nce{}'.format(opt.num_patches))
 if not os.path.exists(weights_dir):
     os.makedirs(weights_dir)
 
