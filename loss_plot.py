@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# output_dir = os.path.join('output', 'surf2nude')
-output_dir = os.path.join('output', 'man2renaissance')
+output_dir = os.path.join('output', 'surf2nude', 'patchnce')
+# output_dir = os.path.join('output', 'man2renaissance')
 losses_fname = os.path.join(output_dir, 'losses.csv')
 
 # data frame
@@ -38,6 +38,8 @@ y_loss_g_cycle = df['Loss_G_cycle']
 y_loss_g_cycle_aba = df['Loss_G_cycle_ABA']
 y_loss_g_cycle_bab = df['Loss_G_cycle_BAB']
 
+y_loss_g_nce = df['Loss_G_NCE']
+
 # plot
 fig = plt.figure(figsize=(12, 6))
 ax = plt.subplot(111)
@@ -59,6 +61,8 @@ ax.plot(x, y_loss_g_gan_b2a, label='Loss_G_GAN_Y2X')
 ax.plot(x, y_loss_g_cycle, label='Loss_G_cycle')
 ax.plot(x, y_loss_g_cycle_aba, label='Loss_G_cycle_XYX')
 ax.plot(x, y_loss_g_cycle_bab, label='Loss_G_cycle_YXY')
+
+ax.plot(x, y_loss_g_nce, label='Loss_G_NCE')
 
 ax.legend(loc='upper left', bbox_to_anchor=(1, 1.02))
 
