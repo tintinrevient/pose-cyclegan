@@ -58,3 +58,9 @@ python generate.py --input_img pix/nude.jpg --generator B2A
 <p float="left">
     <img src="pix/loss.png" height="400" />
 </p>
+
+## References
+
+* https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+* https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wasserstein_distance.html
+* https://stackoverflow.com/questions/53970733/i-want-to-compute-the-distance-between-two-numpy-histogram
