@@ -1,0 +1,5 @@
+,scaler,Head_w,Head_h,Torso_w,Torso_h,RUpperArm_w,RUpperArm_h,RLowerArm_w,RLowerArm_h,LUpperArm_w,LUpperArm_h,LLowerArm_w,LLowerArm_h,RThigh_w,RThigh_h,RCalf_w,RCalf_h,LThigh_w,LThigh_h,LCalf_w,LCalf_h
+coco,0,46,58,58,98,59,24,49,17,59,24,49,17,40,89,24,72,40,89,24,72
+test,0,46,58,58,98,69,34,59,27,69,34,59,27,50,99,34,82,50,99,34,82
+impressionism,0,44,58,66,119,58,23,54,21,58,23,54,21,41,80,30,66,41,80,30,66
+Michelangelo,0,48,62,84,128,73,33,68,24,73,33,68,24,50,86,38,86,50,86,38,86
