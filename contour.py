@@ -84,7 +84,9 @@ def _segm_xy(segm, segm_id, box_xywh):
     return list(zip(x+box_x, y+box_y))
 
 
-def _get_dict_of_segm_and_keypoints(segm, keypoints, box_xywh):
+def _get_dict_of_segm_and_keypoints(segm, keypoints, box_xywh, translated_xyz):
+
+    translated_x, translated_y, _ = translated_xyz
 
     segm_xy_list = []
 
@@ -92,6 +94,7 @@ def _get_dict_of_segm_and_keypoints(segm, keypoints, box_xywh):
     segm_xy_list.append(bg_xy)
 
     torso_xy = _segm_xy(segm=segm, segm_id=1, box_xywh=box_xywh)
+    torso_xy = [[x-translated_x, y-translated_y] for x, y in torso_xy]
     segm_xy_list.append(torso_xy)
 
     r_hand_xy = [] # 2
@@ -104,24 +107,33 @@ def _get_dict_of_segm_and_keypoints(segm, keypoints, box_xywh):
     segm_xy_list.append(r_foot_xy)
 
     r_thigh_xy = _segm_xy(segm=segm, segm_id=6, box_xywh=box_xywh)
+    r_thigh_xy = [[x-translated_x, y-translated_y] for x, y in r_thigh_xy]
     l_thigh_xy = _segm_xy(segm=segm, segm_id=7, box_xywh=box_xywh)
+    l_thigh_xy = [[x-translated_x, y-translated_y] for x, y in l_thigh_xy]
     r_calf_xy = _segm_xy(segm=segm, segm_id=8, box_xywh=box_xywh)
+    r_calf_xy = [[x-translated_x, y-translated_y] for x, y in r_calf_xy]
     l_calf_xy = _segm_xy(segm=segm, segm_id=9, box_xywh=box_xywh)
+    l_calf_xy = [[x-translated_x, y-translated_y] for x, y in l_calf_xy]
     segm_xy_list.append(r_thigh_xy)
     segm_xy_list.append(l_thigh_xy)
     segm_xy_list.append(r_calf_xy)
     segm_xy_list.append(l_calf_xy)
 
     l_upper_arm_xy = _segm_xy(segm=segm, segm_id=10, box_xywh=box_xywh)
+    l_upper_arm_xy = [[x-translated_x, y-translated_y] for x, y in l_upper_arm_xy]
     r_upper_arm_xy = _segm_xy(segm=segm, segm_id=11, box_xywh=box_xywh)
+    r_upper_arm_xy = [[x-translated_x, y-translated_y] for x, y in r_upper_arm_xy]
     l_lower_arm_xy = _segm_xy(segm=segm, segm_id=12, box_xywh=box_xywh)
+    l_lower_arm_xy = [[x-translated_x, y-translated_y] for x, y in l_lower_arm_xy]
     r_lower_arm_xy = _segm_xy(segm=segm, segm_id=13, box_xywh=box_xywh)
+    r_lower_arm_xy = [[x-translated_x, y-translated_y] for x, y in r_lower_arm_xy]
     segm_xy_list.append(l_upper_arm_xy)
     segm_xy_list.append(r_upper_arm_xy)
     segm_xy_list.append(l_lower_arm_xy)
     segm_xy_list.append(r_lower_arm_xy)
 
     head_xy = _segm_xy(segm=segm, segm_id=14, box_xywh=box_xywh)
+    head_xy = [[x-translated_x, y-translated_y] for x, y in head_xy]
     segm_xy_list.append(head_xy)
 
     # segments dictionary
@@ -129,7 +141,7 @@ def _get_dict_of_segm_and_keypoints(segm, keypoints, box_xywh):
 
     # keypoints dictionary
     keypoints_dict = dict(zip(JOINT_ID, zip(keypoints[0::3].copy(), keypoints[1::3].copy(), keypoints[2::3].copy())))
-    keypoints_dict = {key:np.array(value) for key, value in keypoints_dict.items()}
+    keypoints_dict = {key:np.array(value)-np.array(translated_xyz) for key, value in keypoints_dict.items()}
 
     # infer the keypoints of neck and midhip, which are missing!
     keypoints_dict['Neck'] = ((keypoints_dict['LShoulder'] + keypoints_dict['RShoulder']) / 2).astype(int)
@@ -328,10 +340,10 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
             rotated_angles['Head'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['Head'][0:2]), rotated_angles['Head'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['Head'][0:2]), rotated_angles['Head'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     # torso
     rect = ((midpoints['Torso'][0], midpoints['Torso'][1]),
@@ -339,10 +351,10 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
             rotated_angles['Torso'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['Torso'][0:2]), rotated_angles['Torso'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['Torso'][0:2]), rotated_angles['Torso'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     # upper limbs
     rect = ((midpoints['RUpperArm'][0], midpoints['RUpperArm'][1]),
@@ -350,40 +362,40 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
             rotated_angles['RUpperArm'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['RUpperArm'][0:2]), rotated_angles['RUpperArm'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['RUpperArm'][0:2]), rotated_angles['RUpperArm'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['RLowerArm'][0], midpoints['RLowerArm'][1]),
             (dict_norm_segm['RLowerArm_w'] * scaler, dict_norm_segm['RLowerArm_h'] * scaler),
             rotated_angles['RLowerArm'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['RLowerArm'][0:2]), rotated_angles['RLowerArm'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['RLowerArm'][0:2]), rotated_angles['RLowerArm'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['LUpperArm'][0], midpoints['LUpperArm'][1]),
             (dict_norm_segm['LUpperArm_w'] * scaler, dict_norm_segm['LUpperArm_h'] * scaler),
             rotated_angles['LUpperArm'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['LUpperArm'][0:2]), rotated_angles['LUpperArm'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['LUpperArm'][0:2]), rotated_angles['LUpperArm'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['LLowerArm'][0], midpoints['LLowerArm'][1]),
             (dict_norm_segm['LLowerArm_w'] * scaler, dict_norm_segm['LLowerArm_h'] * scaler),
             rotated_angles['LLowerArm'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['LLowerArm'][0:2]), rotated_angles['LLowerArm'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['LLowerArm'][0:2]), rotated_angles['LLowerArm'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     # lower limbs
     rect = ((midpoints['RThigh'][0], midpoints['RThigh'][1]),
@@ -391,45 +403,45 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
             rotated_angles['RThigh'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['RThigh'][0:2]), rotated_angles['RThigh'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['RThigh'][0:2]), rotated_angles['RThigh'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['RCalf'][0], midpoints['RCalf'][1]),
             (dict_norm_segm['RCalf_w'] * scaler, dict_norm_segm['RCalf_h'] * scaler),
             rotated_angles['RCalf'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['RCalf'][0:2]), rotated_angles['RCalf'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['RCalf'][0:2]), rotated_angles['RCalf'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['LThigh'][0], midpoints['LThigh'][1]),
             (dict_norm_segm['LThigh_w'] * scaler, dict_norm_segm['LThigh_h'] * scaler),
             rotated_angles['LThigh'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['LThigh'][0:2]), rotated_angles['LThigh'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['LThigh'][0:2]), rotated_angles['LThigh'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     rect = ((midpoints['LCalf'][0], midpoints['LCalf'][1]),
             (dict_norm_segm['LCalf_w'] * scaler, dict_norm_segm['LCalf_h'] * scaler),
             rotated_angles['LCalf'])
     box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
     box = np.int0(box)
-    rotated_image = _rotate_image(image, tuple(midpoints['LCalf'][0:2]), rotated_angles['LCalf'])
+    # rotated_image = _rotate_image(image, tuple(midpoints['LCalf'][0:2]), rotated_angles['LCalf'])
     x1, y1 = np.min(box, axis=0)
     x2, y2 = np.max(box, axis=0)
-    patch_img_list.append(rotated_image[y1:y2, x1:x2])
+    patch_img_list.append(image[y1:y2, x1:x2])
 
     return patch_img_list
 
 
-def calculate_hist_loss(image_id, person_index, from_category, to_category):
+def visualize(image_id, person_index, from_category, to_category):
 
     entry = dp_coco.loadImgs(image_id)[0]
 
@@ -463,7 +475,7 @@ def calculate_hist_loss(image_id, person_index, from_category, to_category):
             segm = cv2.resize(mask, (int(x2 - x1), int(y2 - y1)), interpolation=cv2.INTER_NEAREST)
 
         # step 1. get segm_xy + keypoints dict
-        segm_xy_dict, keypoints_dict = _get_dict_of_segm_and_keypoints(segm, keypoints, bbox_xywh)
+        segm_xy_dict, keypoints_dict = _get_dict_of_segm_and_keypoints(segm, keypoints, bbox_xywh, [0, 0, 0])
 
         # step 2: get all the midpoints
         midpoints_dict = _get_dict_of_midpoints(segm_xy_dict, keypoints_dict)
@@ -498,6 +510,107 @@ def calculate_hist_loss(image_id, person_index, from_category, to_category):
         cv2.destroyAllWindows()
 
 
+def calculate_hist_loss(source, image_path, image_size, from_category, to_category):
+
+    # 1.1 get the cropped image
+    # image = image.squeeze().permute(1, 2, 0).cpu().numpy()
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    image = 0.5 * (source.data + 1.0)
+    image = image.squeeze().permute(1, 2, 0)
+
+    # 1.2 process image_path -> get image_id
+    image_id = int(image_path[image_path.rfind('_')+1:image_path.rfind('.')])
+    entry = dp_coco.loadImgs(image_id)[0]
+    dp_annotation_ids = dp_coco.getAnnIds(imgIds=entry['id'])
+    dp_annotations = dp_coco.loadAnns(dp_annotation_ids)
+
+    # 1.3 process image_size -> get the translation x, y since the image has been cropped to (256, 256) around the center
+    translated_x = (image_size[0].item() - 256) / 2
+    translated_y = (image_size[1].item() - 256) / 2
+
+    # iterate through all the people in one image
+    for person_index, dp_annotation in enumerate(dp_annotations):
+
+        person_index += 1
+
+        # 2.1 keypoints
+        keypoints = dp_annotation['keypoints']
+
+        # 2.2 bbox
+        bbox_xywh = np.array(dp_annotation["bbox"]).astype(int)
+
+        # 2.3 segments of dense_pose
+        if ('dp_masks' in dp_annotation.keys()):
+            mask = _get_dp_mask(dp_annotation['dp_masks'])
+
+            x1, y1, x2, y2 = bbox_xywh[0] - translated_x, bbox_xywh[1] - translated_y, bbox_xywh[0] + bbox_xywh[2] - translated_x, bbox_xywh[1] + bbox_xywh[3] - translated_y
+
+            x2 = min([x2, image.shape[1]])
+            y2 = min([y2, image.shape[0]])
+
+            if x2 <= x1 or y2 <= y1:
+                return [], []
+
+            segm = cv2.resize(mask, (int(x2 - x1), int(y2 - y1)), interpolation=cv2.INTER_NEAREST)
+
+        else:
+            return [], []
+
+        # step 1. get segm_xy + keypoints dict
+        segm_xy_dict, keypoints_dict = _get_dict_of_segm_and_keypoints(segm, keypoints, bbox_xywh, [translated_x, translated_y, 0])
+
+        # debug
+        # for key, value in keypoints_dict.items():
+        #     x, y = int(value[0]), int(value[1])
+        #     cv2.circle(image, (x, y), 4, (255, 0, 255), -1)
+        # cv2.imshow('keypoints', image),
+        # cv2.waitKey()
+        # cv2.destroyAllWindows()
+
+        # step 2: get all the midpoints
+        midpoints_dict = _get_dict_of_midpoints(segm_xy_dict, keypoints_dict)
+
+        # step 3: get the rotation angles
+        rotated_angles = _get_rotated_angles(keypoints_dict, midpoints_dict)
+
+        # step 4: load the data of contour
+        df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
+        dict_from_contour = df_contour.loc[from_category]
+        dict_to_contour = df_contour.loc[to_category]
+
+        df_norm_segm = pd.read_csv(fname_norm_segm_coco_woman, index_col=0)
+        index_name = generate_index_name(image_id, person_index)
+        dict_from_contour['scaler'] = df_norm_segm.loc[index_name]['scaler']
+        dict_to_contour['scaler'] = df_norm_segm.loc[index_name]['scaler']
+
+        # step 5: get a list of segments as patch images from the original image
+        from_patch_img_list = _get_patch_img_list(image, midpoints_dict, rotated_angles, dict_from_contour)
+        to_patch_img_list = _get_patch_img_list(image, midpoints_dict, rotated_angles, dict_to_contour)
+
+        # step 6: calculate histogram for each patch image
+        from_hist_list = []
+        to_hist_list = []
+        for from_patch_img, to_patch_img in zip(from_patch_img_list, to_patch_img_list):
+
+            # debug
+            # cv2.imshow('segm', from_patch_img)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+
+            if(from_patch_img.shape[0] < 1 or from_patch_img.shape[1] < 1):
+                continue
+            if (to_patch_img.shape[0] < 1 or to_patch_img.shape[1] < 1):
+                continue
+
+            from_hist = cv2.calcHist([from_patch_img.cpu().numpy()], [0], None, [256], [0, 256])
+            to_hist = cv2.calcHist([to_patch_img.cpu().numpy()], [0], None, [256], [0, 256])
+
+            from_hist_list.append(from_hist.transpose()[0])
+            to_hist_list.append(to_hist.transpose()[0])
+
+        return from_hist_list, to_hist_list
+
+
 def generate_index_name(image_id, person_index):
 
     index_name = '{}_{}'.format(image_id, person_index)
@@ -513,4 +626,4 @@ if __name__ == '__main__':
     # category = coco
     image_id = 362884
 
-    calculate_hist_loss(image_id=image_id, person_index=1, from_category='coco', to_category='test')
+    visualize(image_id=image_id, person_index=1, from_category='coco', to_category='test')
