@@ -228,12 +228,12 @@ for epoch in range(opt.epoch, opt.n_epochs):
         from_hist_list, to_hist_list = calculate_hist_loss(fake_B, path_A, shape_A, 'coco', 'test')
         if len(from_hist_list) == 0 or len(to_hist_list) == 0:
             continue
-        loss_segm_A2B = criterion_segm(torch.tensor(from_hist_list), torch.tensor(to_hist_list))
+        loss_segm_A2B = criterion_segm(torch.tensor(to_hist_list), torch.tensor(from_hist_list))
 
         from_hist_list, to_hist_list = calculate_hist_loss(recovered_A, path_A, shape_A, 'coco', 'test')
         if len(from_hist_list) == 0 or len(to_hist_list) == 0:
             continue
-        loss_segm_ABA = criterion_segm(torch.tensor(from_hist_list), torch.tensor(to_hist_list))
+        loss_segm_ABA = criterion_segm(torch.tensor(to_hist_list), torch.tensor(from_hist_list))
 
 
         # Total loss
@@ -294,7 +294,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
+            f"Loss_G_NCE: {(loss_NCE).item():.4f} "
+            f"Loss_G_NCE: {(loss_segm_A2B + loss_segm_ABA).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
@@ -313,7 +314,10 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item()
+            'Loss_G_NCE_B': loss_NCE_B.item(),
+            'Loss_G_segm': (loss_segm_A2B + loss_segm_ABA).item(),
+            'Loss_G_segm_A2B': loss_segm_A2B.item(),
+            'Loss_G_segm_ABA': loss_segm_ABA.item()
         })
 
         # Save the sample images every print_freq
