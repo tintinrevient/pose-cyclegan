@@ -15,7 +15,7 @@ from models import Generator, PatchDiscriminator, PatchMLP, PatchSample
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
-from visualize_contour import calculate_hist_loss
+from contour import calculate_hist_loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
