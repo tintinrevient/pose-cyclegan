@@ -22,6 +22,7 @@ class ImageDataset(Dataset):
 
             path_A = self.files_A[index % len(self.files_A)]
             item_A = self.transform(Image.open(path_A))
+            shape_A = tuple(Image.open(path_A).size) # (width, height)
 
             if self.unaligned:
                 path_B = self.files_B[random.randint(0, len(self.files_B) - 1)]
@@ -38,11 +39,13 @@ class ImageDataset(Dataset):
             if self.unaligned:
                 path_A = self.files_A[random.randint(0, len(self.files_A) - 1)]
                 item_A = self.transform(Image.open(path_A))
+                shape_A = tuple(Image.open(path_A).size) # (width, height)
             else:
                 path_A = self.files_A[index % len(self.files_A)]
                 item_A = self.transform(Image.open(path_A))
+                shape_A = tuple(Image.open(path_A).size) # (width, height)
 
-        return {'A': item_A, 'path_A': path_A, 'B': item_B, 'path_B': path_B}
+        return {'A': item_A, 'path_A': path_A, 'shape_A': shape_A, 'B': item_B, 'path_B': path_B}
 
     def __len__(self):
         return max(len(self.files_A), len(self.files_B))
