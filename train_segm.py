@@ -295,7 +295,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
             f"Loss_G_NCE: {(loss_NCE).item():.4f} "
-            f"Loss_G_NCE: {(loss_segm_A2B + loss_segm_ABA).item():.4f}")
+            f"Loss_G_segm: {(loss_segm_A2B + loss_segm_ABA).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
