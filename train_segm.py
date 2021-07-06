@@ -15,7 +15,6 @@ from models import Generator, PatchDiscriminator, PatchMLP, PatchSample
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
-from contour import calculate_hist_loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
@@ -126,7 +125,8 @@ fake_A_buffer = ReplayBuffer()
 fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
-transforms_ = [ transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
+transforms_ = [
+                # transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
@@ -179,6 +179,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
     for i, batch in progress_bar:
 
+        # Path + Shape of the original images
         path_A = batch['path_A'][0]
         shape_A = batch['shape_A']
         path_B = batch['path_B']
@@ -199,6 +200,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # G_A2B(B) should equal B if real B is fed
         same_B = netG_A2B(real_B)
         loss_identity_B = criterion_identity(same_B, real_B)*5.0
+
         # G_B2A(A) should equal A if real A is fed
         same_A = netG_B2A(real_A)
         loss_identity_A = criterion_identity(same_A, real_A)*5.0
@@ -224,21 +226,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_NCE_B = calculate_NCE_loss(real_B, same_B)
         loss_NCE = loss_NCE_A + loss_NCE_B
 
-        # Segment loss
-        from_hist_list, to_hist_list = calculate_hist_loss(fake_B, path_A, shape_A, 'coco', 'test')
-        if len(from_hist_list) == 0 or len(to_hist_list) == 0:
-            continue
-        loss_segm_A2B = criterion_segm(torch.tensor(to_hist_list), torch.tensor(from_hist_list))
-
-        from_hist_list, to_hist_list = calculate_hist_loss(recovered_A, path_A, shape_A, 'coco', 'test')
-        if len(from_hist_list) == 0 or len(to_hist_list) == 0:
-            continue
-        loss_segm_ABA = criterion_segm(torch.tensor(to_hist_list), torch.tensor(from_hist_list))
-
-
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm_A2B + loss_segm_ABA
-        loss_G.backward()
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
         
         optimizer_G.step()
         optimizer_MLP_1.step()
@@ -294,8 +283,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {(loss_NCE).item():.4f} "
-            f"Loss_G_segm: {(loss_segm_A2B + loss_segm_ABA).item():.4f}")
+            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
@@ -314,10 +302,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item(),
-            'Loss_G_segm': (loss_segm_A2B + loss_segm_ABA).item(),
-            'Loss_G_segm_A2B': loss_segm_A2B.item(),
-            'Loss_G_segm_ABA': loss_segm_ABA.item()
+            'Loss_G_NCE_B': loss_NCE_B.item()
         })
 
         # Save the sample images every print_freq
