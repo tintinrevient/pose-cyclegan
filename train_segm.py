@@ -97,7 +97,7 @@ netS_large.apply(weights_init_normal)
 criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
-criterion_patch= torch.nn.L1Loss()
+criterion_segm= torch.nn.L1Loss()
 
 criterion_NCE = []
 for nce_layer in opt.nce_layers:
@@ -190,7 +190,7 @@ def calculate_segment_loss(source):
     segm_small = netS_small(features[0][:, :, 56:72, 56:72])
     segm_large = netS_large(features[1][:, :, 24:40, 24:40])
 
-    loss_segm = criterion_patch(segm_small, segm_large) * 10.0
+    loss_segm = criterion_segm(segm_small, segm_large) * 10.0
 
     return loss_segm
 ######################################
@@ -319,7 +319,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
             f"Loss_G_NCE: {(loss_NCE).item():.4f} "
-            f"Loss_G_NCE: {(loss_segm).item():.4f}")
+            f"Loss_G_segm: {(loss_segm).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
