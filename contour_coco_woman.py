@@ -1,4 +1,4 @@
-import os, cv2, re
+import os, cv2, re, glob
 import numpy as np
 import pandas as pd
 from pycocotools.coco import COCO
@@ -526,8 +526,7 @@ if __name__ == '__main__':
     # visualize(image_id=image_id, category='coco')
 
     # for multiple images
-    with open('output/contour_coco_image_ids', 'rb') as fh:
-        image_id_list = pickle.load(fh)
-    for image_idx, image_id in enumerate(image_id_list):
+    for image_idx, image_infile in enumerate(glob.glob('datasets/surf2nude/train/A/*.jpg')):
+        image_id = int(image_infile[image_infile.rfind('_')+1:image_infile.rfind('.')])
         print('image {}:'.format(image_idx), image_id)
         visualize(image_id=image_id, category='coco')

@@ -10,6 +10,7 @@ openpose_keypoints_dir = os.path.join('output', 'data', 'impressionism')
 fname_contour = os.path.join('output', 'contour.csv')
 
 # the path to the data of norm_segm.csv
+# fname_norm_segm = os.path.join('output', 'norm_segm_impressionism_keypoints.csv')
 fname_norm_segm = os.path.join('output', 'norm_segm_impressionism.csv')
 
 # Body 25 Keypoints
@@ -68,6 +69,8 @@ def _get_keypoints(infile):
 
 def calc_scaler():
 
+    adjust = 1.5
+
     for infile in glob.glob('datasets/surf2nude/train/C/*.jpg'):
 
         painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
@@ -79,7 +82,7 @@ def calc_scaler():
         # check if the keypoints of nose + neck exist!
         if 'Nose' in keypoints and 'Neck' in keypoints:
             dist = _euclidian(keypoints['Nose'], keypoints['Neck'])
-            scaler = 58 / (dist * 1.5)
+            scaler = 58 / (dist * adjust)
         else:
             print('image {} does not have nose or neck in the keypoints.'.format(painting_number))
             continue
@@ -89,7 +92,7 @@ def calc_scaler():
 
         index_name = _generate_index_name(infile, person_index)
         df = pd.DataFrame(data=norm_segm_dict, index=[index_name])
-        with open(os.path.join('output', 'norm_segm_impressionism.csv'), 'a') as csv_file:
+        with open(fname_norm_segm, 'a') as csv_file:
             df.to_csv(csv_file, index=True, header=False)
 
         norm_segm_dict = {}
@@ -366,14 +369,14 @@ def generate_index_name(infile, person_index):
 
 if __name__ == '__main__':
 
-    # step 1: calculate and save the scalers in 'norm_segm_impressionism.csv'
+    # step 1: calculate and save the scalers in 'norm_segm_impressionism_xx.csv'
     # calc_scaler()
 
     # step 2: visualize contour on image
     thickness = 3
 
     # for a single image
-    # visualize(infile='?', category='impressionism')
+    # visualize(infile='datasets/surf2nude/train/C/17245.jpg', category='impressionism')
 
     # for multiple images
     for image_idx, infile in enumerate(glob.glob('datasets/surf2nude/train/C/*.jpg')):
