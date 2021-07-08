@@ -136,30 +136,6 @@ class PatchDiscriminator(Discriminator):
 
         return super().forward(input)
 
-# shape decoder
-class PatchAmplifier(nn.Module):
-    def __init__(self, input_nc, n_layers):
-        super(PatchAmplifier, self).__init__()
-
-        model = []
-        output_nc = input_nc // 2
-
-        for _ in range(n_layers):
-            model += [nn.ConvTranspose2d(input_nc, output_nc, 3, stride=2, padding=1, output_padding=1),
-                      nn.InstanceNorm2d(output_nc),
-                      nn.ReLU(inplace=True)]
-            input_nc = output_nc
-            output_nc = input_nc // 2
-
-        model += [nn.ReflectionPad2d(3),
-                  nn.Conv2d(input_nc, 3, 7),
-                  nn.Tanh()]
-
-        self.model = nn.Sequential(*model)
-
-    def forward(self, x):
-        return self.model(x)
-
 
 # Patch MLP
 # Potential issues: currently, we use the same patch_ids for multiple images in the batch
@@ -236,3 +212,28 @@ class PatchSample(nn.Module):
             return_feats.append(x_sample)
 
         return return_feats, return_ids
+
+
+# Amplify 16x16 patch of segment
+class SegmentAmplifier(nn.Module):
+    def __init__(self, input_nc, n_layers):
+        super(SegmentAmplifier, self).__init__()
+
+        model = []
+        output_nc = input_nc // 2
+
+        for _ in range(n_layers):
+            model += [nn.ConvTranspose2d(input_nc, output_nc, 3, stride=2, padding=1, output_padding=1),
+                      nn.InstanceNorm2d(output_nc),
+                      nn.ReLU(inplace=True)]
+            input_nc = output_nc
+            output_nc = input_nc // 2
+
+        model += [nn.ReflectionPad2d(3),
+                  nn.Conv2d(input_nc, 3, 7),
+                  nn.Tanh()]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+        return self.model(x)
