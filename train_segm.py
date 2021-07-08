@@ -203,13 +203,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
     for i, batch in progress_bar:
 
-        # Path + Shape of the original images
-        path_A = batch['path_A'][0]
-        shape_A = batch['shape_A']
-
-        path_B = batch['path_B'][0]
-        shape_B = batch['shape_B']
-
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
         real_B = Variable(input_B.copy_(batch['B']))
@@ -221,8 +214,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         optimizer_MLP_3.zero_grad()
         optimizer_MLP_4.zero_grad()
         optimizer_MLP_5.zero_grad()
-        optimizer_S_small.zero_grad()
-        optimizer_S_large.zero_grad()
+        # optimizer_S_small.zero_grad()
+        # optimizer_S_large.zero_grad()
 
         # Identity loss
         # G_A2B(B) should equal B if real B is fed
@@ -255,21 +248,22 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_NCE = loss_NCE_A + loss_NCE_B
 
         # Patch amplifier loss
-        loss_segm_fake_B = calculate_segment_loss(fake_B)
-        loss_segm_same_B = calculate_segment_loss(same_B)
-        loss_segm = loss_segm_fake_B + loss_segm_same_B
+        # loss_segm_fake_B = calculate_segment_loss(fake_B)
+        # loss_segm_same_B = calculate_segment_loss(same_B)
+        # loss_segm = loss_segm_fake_B + loss_segm_same_B
 
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
-        
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
+        # loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
+
         optimizer_G.step()
         optimizer_MLP_1.step()
         optimizer_MLP_2.step()
         optimizer_MLP_3.step()
         optimizer_MLP_4.step()
         optimizer_MLP_5.step()
-        optimizer_S_small.step()
-        optimizer_S_large.step()
+        # optimizer_S_small.step()
+        # optimizer_S_large.step()
         ####################################
 
         ######### Discriminator A ##########
@@ -318,8 +312,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {(loss_NCE).item():.4f} "
-            f"Loss_G_segm: {(loss_segm).item():.4f}")
+            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
+        # f"Loss_G_segm: {(loss_segm).item():.4f}"
 
         # Log the losses of each batch
         logger.log({
@@ -338,10 +332,10 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item(),
-            'Loss_G_segm': loss_segm.item(),
-            'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
-            'Loss_G_segm_same_B': loss_segm_same_B.item()
+            'Loss_G_NCE_B': loss_NCE_B.item()
+            # 'Loss_G_segm': loss_segm.item(),
+            # 'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
+            # 'Loss_G_segm_same_B': loss_segm_same_B.item()
         })
 
         # Save the sample images every print_freq
@@ -400,13 +394,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
     lr_scheduler_G.step()
     lr_scheduler_D_A.step()
     lr_scheduler_D_B.step()
-    lr_scheduler_MLP_1.step()
-    lr_scheduler_MLP_2.step()
-    lr_scheduler_MLP_3.step()
-    lr_scheduler_MLP_4.step()
-    lr_scheduler_MLP_5.step()
-    lr_scheduler_S_small.step()
-    lr_scheduler_S_large.step()
+    # lr_scheduler_MLP_1.step()
+    # lr_scheduler_MLP_2.step()
+    # lr_scheduler_MLP_3.step()
+    # lr_scheduler_MLP_4.step()
+    # lr_scheduler_MLP_5.step()
+    # lr_scheduler_S_small.step()
+    # lr_scheduler_S_large.step()
 
     # Save models checkpoints
     torch.save(netG_A2B.state_dict(), os.path.join(weights_dir, 'netG_A2B.pth'))
