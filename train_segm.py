@@ -339,9 +339,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
             'Loss_G_NCE_B': loss_NCE_B.item(),
-            'Loss_G_patch': loss_segm.item(),
-            'Loss_G_patch_fake_B': loss_segm_fake_B.item(),
-            'Loss_G_patch_same_B': loss_segm_same_B.item()
+            'Loss_G_segm': loss_segm.item(),
+            'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
+            'Loss_G_segm_same_B': loss_segm_same_B.item()
         })
 
         # Save the sample images every print_freq
