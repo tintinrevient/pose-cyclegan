@@ -8,6 +8,7 @@ import pickle
 
 # the path to the data of contour.csv
 fname_contour = os.path.join('output', 'contour.csv')
+
 # the path to the data of norm_segm.csv
 fname_norm_segm_coco_woman = os.path.join('output', 'norm_segm_coco_woman.csv')
 
