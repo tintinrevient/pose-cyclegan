@@ -11,7 +11,7 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator, PatchDiscriminator, PatchMLP, PatchSample, PatchAmplifier
+from models import Generator, PatchDiscriminator, PatchMLP, PatchSample, SegmentAmplifier
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
