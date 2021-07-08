@@ -11,7 +11,7 @@ from torchsummary import summary
 from PIL import Image
 from tqdm import tqdm
 
-from models import Generator, PatchDiscriminator, PatchMLP, PatchSample
+from models import Generator, PatchDiscriminator, PatchMLP, PatchSample, PatchAmplifier
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
@@ -64,6 +64,10 @@ netMLP_3 = PatchMLP(input_nc=256)
 netMLP_4 = PatchMLP(input_nc=256)
 netMLP_5 = PatchMLP(input_nc=256)
 
+## Patch Amplifier
+netP_small = PatchAmplifier(128, 4)
+netP_large = PatchAmplifier(256, 4)
+
 if opt.cuda:
     netG_A2B.cuda()
     netG_B2A.cuda()
@@ -74,6 +78,8 @@ if opt.cuda:
     netMLP_3.cuda()
     netMLP_4.cuda()
     netMLP_5.cuda()
+    netP_small.cuda()
+    netP_large.cuda()
 
 netG_A2B.apply(weights_init_normal)
 netG_B2A.apply(weights_init_normal)
@@ -84,12 +90,14 @@ netMLP_2.apply(weights_init_normal)
 netMLP_3.apply(weights_init_normal)
 netMLP_4.apply(weights_init_normal)
 netMLP_5.apply(weights_init_normal)
+netP_small.apply(weights_init_normal)
+netP_large.apply(weights_init_normal)
 
 # Losses
 criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
-criterion_segm = torch.nn.L1Loss()
+criterion_patch= torch.nn.L1Loss()
 
 criterion_NCE = []
 for nce_layer in opt.nce_layers:
@@ -104,15 +112,19 @@ optimizer_MLP_2 = torch.optim.Adam(netMLP_2.parameters(), lr=opt.lr, betas=(0.5,
 optimizer_MLP_3 = torch.optim.Adam(netMLP_3.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_MLP_4 = torch.optim.Adam(netMLP_4.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_MLP_5 = torch.optim.Adam(netMLP_5.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_P_small = torch.optim.Adam(netP_small.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_P_large = torch.optim.Adam(netP_large.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 
 lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optimizer_D_B, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP1 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_1, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP2 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_2, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP3 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_3, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP4 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_4, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_MLP5 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_5, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP_1 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_1, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP_2 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_2, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP_3 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_3, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP_4 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_4, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_MLP_5 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_5, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_P_small = torch.optim.lr_scheduler.LambdaLR(optimizer_P_small, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_P_large = torch.optim.lr_scheduler.LambdaLR(optimizer_P_large, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 
 # Inputs + Targets: Memory allocation
 Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
@@ -125,8 +137,7 @@ fake_A_buffer = ReplayBuffer()
 fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
-transforms_ = [
-                # transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
+transforms_ = [ transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
@@ -169,6 +180,18 @@ def calculate_NCE_loss(source, target):
     loss_NCE = total_nce_loss / len(opt.nce_layers)
 
     return loss_NCE
+
+
+def calculate_patch_amplifier_loss(source):
+
+    features = netG_A2B(source, [4, 8], encode_only=True)
+
+    patch_small = netP_small(features[0][:,:,120:136,120:136])
+    patch_large = netP_large(features[1][:,:,120:136,120:136])
+
+    loss_patch = criterion_patch(patch_small, patch_large) * 10.0
+
+    return loss_patch
 ######################################
 
 ############## Training ##############
@@ -182,7 +205,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Path + Shape of the original images
         path_A = batch['path_A'][0]
         shape_A = batch['shape_A']
-        path_B = batch['path_B']
+
+        path_B = batch['path_B'][0]
+        shape_B = batch['shape_B']
 
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
@@ -195,6 +220,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         optimizer_MLP_3.zero_grad()
         optimizer_MLP_4.zero_grad()
         optimizer_MLP_5.zero_grad()
+        optimizer_P_small.zero_grad()
+        optimizer_P_large.zero_grad()
 
         # Identity loss
         # G_A2B(B) should equal B if real B is fed
@@ -226,8 +253,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_NCE_B = calculate_NCE_loss(real_B, same_B)
         loss_NCE = loss_NCE_A + loss_NCE_B
 
+        # Patch amplifier loss
+        loss_patch_fake_B = calculate_patch_amplifier_loss(fake_B)
+        loss_patch_same_B = calculate_patch_amplifier_loss(same_B)
+        loss_patch = loss_patch_fake_B + loss_patch_same_B
+
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_patch
         
         optimizer_G.step()
         optimizer_MLP_1.step()
@@ -235,6 +267,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         optimizer_MLP_3.step()
         optimizer_MLP_4.step()
         optimizer_MLP_5.step()
+        optimizer_P_small.step()
+        optimizer_P_large.step()
         ####################################
 
         ######### Discriminator A ##########
@@ -283,7 +317,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
+            f"Loss_G_NCE: {(loss_NCE).item():.4f} "
+            f"Loss_G_NCE: {(loss_patch).item():.4f}")
 
         # Log the losses of each batch
         logger.log({
@@ -302,7 +337,10 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item()
+            'Loss_G_NCE_B': loss_NCE_B.item(),
+            'Loss_G_patch': loss_patch.item(),
+            'Loss_G_patch_fake_B': loss_patch_fake_B.item(),
+            'Loss_G_patch_same_B': loss_patch_same_B.item()
         })
 
         # Save the sample images every print_freq
@@ -361,6 +399,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
     lr_scheduler_G.step()
     lr_scheduler_D_A.step()
     lr_scheduler_D_B.step()
+    lr_scheduler_MLP_1.step()
+    lr_scheduler_MLP_2.step()
+    lr_scheduler_MLP_3.step()
+    lr_scheduler_MLP_4.step()
+    lr_scheduler_MLP_5.step()
+    lr_scheduler_P_small.step()
+    lr_scheduler_P_large.step()
 
     # Save models checkpoints
     torch.save(netG_A2B.state_dict(), os.path.join(weights_dir, 'netG_A2B.pth'))
