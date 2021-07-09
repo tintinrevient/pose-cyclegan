@@ -22,8 +22,7 @@ parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs 
 parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
 parser.add_argument('--dataset', type=str, default='horse2zebra', help='root directory of the dataset')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
-parser.add_argument('--decay_epoch', type=int, default=150,
-                    help='epoch to start linearly decaying the learning rate to 0')
+parser.add_argument('--decay_epoch', type=int, default=150, help='epoch to start linearly decaying the learning rate to 0')
 parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
 parser.add_argument('--patch_size', type=int, default=32, help='size of the patch for PatchGAN discriminator')
 parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
@@ -65,11 +64,9 @@ netMLP_3 = PatchMLP(input_nc=256)
 netMLP_4 = PatchMLP(input_nc=256)
 netMLP_5 = PatchMLP(input_nc=256)
 
-# Segment
-netS_in_small = SegmentAmplifier(128, 4)
-netS_in_large = SegmentAmplifier(256, 4)
-netS_out_large = SegmentAmplifier(256, 4)
-netS_out_small = SegmentAmplifier(128, 4)
+## Segment Amplifier
+netS_small = SegmentAmplifier(128, 4)
+netS_large = SegmentAmplifier(256, 4)
 
 if opt.cuda:
     netG_A2B.cuda()
@@ -81,10 +78,8 @@ if opt.cuda:
     netMLP_3.cuda()
     netMLP_4.cuda()
     netMLP_5.cuda()
-    netS_in_small.cuda()
-    netS_in_large.cuda()
-    netS_out_large.cuda()
-    netS_out_small.cuda()
+    netS_small.cuda()
+    netS_large.cuda()
 
 netG_A2B.apply(weights_init_normal)
 netG_B2A.apply(weights_init_normal)
@@ -95,21 +90,18 @@ netMLP_2.apply(weights_init_normal)
 netMLP_3.apply(weights_init_normal)
 netMLP_4.apply(weights_init_normal)
 netMLP_5.apply(weights_init_normal)
-netS_in_small.apply(weights_init_normal)
-netS_in_large.apply(weights_init_normal)
-netS_out_large.apply(weights_init_normal)
-netS_out_small.apply(weights_init_normal)
+netS_small.apply(weights_init_normal)
+netS_large.apply(weights_init_normal)
 
 # Losses
-criterion_GAN = torch.nn.MSELoss()  # LSGAN
+criterion_GAN = torch.nn.MSELoss() # LSGAN
 criterion_cycle = torch.nn.L1Loss()
 criterion_identity = torch.nn.L1Loss()
+criterion_segm= torch.nn.L1Loss()
 
 criterion_NCE = []
 for nce_layer in opt.nce_layers:
     criterion_NCE.append(PatchNCELoss(opt).cuda() if opt.cuda else PatchNCELoss(opt))
-
-criterion_segm = torch.nn.L1Loss()
 
 # Optimizers + LR schedulers
 optimizer_G = torch.optim.Adam(itertools.chain(netG_A2B.parameters(), netG_B2A.parameters()), lr=opt.lr, betas=(0.5, 0.999))
@@ -120,10 +112,8 @@ optimizer_MLP_2 = torch.optim.Adam(netMLP_2.parameters(), lr=opt.lr, betas=(0.5,
 optimizer_MLP_3 = torch.optim.Adam(netMLP_3.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_MLP_4 = torch.optim.Adam(netMLP_4.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 optimizer_MLP_5 = torch.optim.Adam(netMLP_5.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-optimizer_S_in_small = torch.optim.Adam(netS_in_small.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-optimizer_S_in_large = torch.optim.Adam(netS_in_large.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-optimizer_S_out_large = torch.optim.Adam(netS_out_large.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-optimizer_S_out_small = torch.optim.Adam(netS_out_small.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_S_small = torch.optim.Adam(netS_small.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+optimizer_S_large = torch.optim.Adam(netS_large.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 
 lr_scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optimizer_D_A, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
@@ -133,10 +123,8 @@ lr_scheduler_MLP_2 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_2, lr_lambd
 lr_scheduler_MLP_3 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_3, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_MLP_4 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_4, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 lr_scheduler_MLP_5 = torch.optim.lr_scheduler.LambdaLR(optimizer_MLP_5, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_S_in_small = torch.optim.lr_scheduler.LambdaLR(optimizer_S_in_small, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_S_in_large = torch.optim.lr_scheduler.LambdaLR(optimizer_S_in_large, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_S_out_large = torch.optim.lr_scheduler.LambdaLR(optimizer_S_out_large, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
-lr_scheduler_S_out_small = torch.optim.lr_scheduler.LambdaLR(optimizer_S_out_small, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_S_small = torch.optim.lr_scheduler.LambdaLR(optimizer_S_small, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
+lr_scheduler_S_large = torch.optim.lr_scheduler.LambdaLR(optimizer_S_large, lr_lambda=LambdaLR(opt.n_epochs, opt.epoch, opt.decay_epoch).step)
 
 # Inputs + Targets: Memory allocation
 Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
@@ -149,22 +137,20 @@ fake_A_buffer = ReplayBuffer()
 fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
-transforms_ = [transforms.Resize(int(opt.size * 1.12), Image.BICUBIC),
-               transforms.CenterCrop(opt.size),  # change from RandomCrop to CenterCrop
-               transforms.RandomHorizontalFlip(),
-               transforms.ToTensor(),
-               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+transforms_ = [ transforms.CenterCrop(opt.size), # change from RandomCrop to CenterCrop
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 
 # Directories + Files: Initialization
 ## Output
-output_dir = os.path.join('output', opt.dataset, 'segm')
+output_dir = os.path.join('output', opt.dataset, 'patchnce{}'.format(opt.num_patches))
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 ## Weights
-weights_dir = os.path.join('weights', opt.dataset, 'segm')
+weights_dir = os.path.join('weights', opt.dataset, 'patchnce{}'.format(opt.num_patches))
 if not os.path.exists(weights_dir):
     os.makedirs(weights_dir)
 
@@ -177,6 +163,7 @@ with open(losses_fname, 'w') as csv_file:
 
 ######################################
 def calculate_NCE_loss(source, target):
+
     netMLP = PatchSample(netMLPs=[netMLP_1, netMLP_2, netMLP_3, netMLP_4, netMLP_5])
 
     feat_k = netG_A2B(source, opt.nce_layers, encode_only=True)
@@ -197,22 +184,13 @@ def calculate_NCE_loss(source, target):
 
 def calculate_segment_loss(source):
 
-    in_features = netG_A2B(source, [4, 8], encode_only=True)
-    out_features = netG_A2B(source, [16, 20], encode_only=True)
+    features = netG_A2B(source, [4, 8], encode_only=True)
 
     # test run - to amplify the center of a tensor
-    segm_in_small = netS_in_small(in_features[0][:, :, 56:72, 56:72])
-    segm_in_large = netS_in_large(in_features[1][:, :, 24:40, 24:40])
+    segm_small = netS_small(features[0][:, :, 56:72, 56:72])
+    segm_large = netS_large(features[1][:, :, 24:40, 24:40])
 
-    segm_out_small = netS_out_small(out_features[1][:, :, 56:72, 56:72])
-    segm_out_large = netS_out_large(out_features[0][:, :, 24:40, 24:40])
-
-    loss_in_segm = criterion_segm(segm_in_small, segm_in_large) * 10.0
-    loss_out_segm = criterion_segm(segm_out_small, segm_out_large) * 10.0
-    loss_in_out_segm = criterion_segm(segm_in_small, segm_out_large) * 10.0
-    loss_out_in_segm = criterion_segm(segm_out_small, segm_in_large) * 10.0
-
-    loss_segm = loss_in_segm + loss_out_segm + loss_in_out_segm + loss_out_in_segm
+    loss_segm = criterion_segm(segm_small, segm_large) * 10.0
 
     return loss_segm
 ######################################
@@ -236,19 +214,17 @@ for epoch in range(opt.epoch, opt.n_epochs):
         optimizer_MLP_3.zero_grad()
         optimizer_MLP_4.zero_grad()
         optimizer_MLP_5.zero_grad()
-
-        optimizer_S_in_small.zero_grad()
-        optimizer_S_in_large.zero_grad()
-        optimizer_S_out_small.zero_grad()
-        optimizer_S_out_large.zero_grad()
+        # optimizer_S_small.zero_grad()
+        # optimizer_S_large.zero_grad()
 
         # Identity loss
         # G_A2B(B) should equal B if real B is fed
         same_B = netG_A2B(real_B)
-        loss_identity_B = criterion_identity(same_B, real_B) * 5.0
+        loss_identity_B = criterion_identity(same_B, real_B)*5.0
+
         # G_B2A(A) should equal A if real A is fed
         same_A = netG_B2A(real_A)
-        loss_identity_A = criterion_identity(same_A, real_A) * 5.0
+        loss_identity_A = criterion_identity(same_A, real_A)*5.0
 
         # GAN loss
         fake_B = netG_A2B(real_A)
@@ -261,24 +237,24 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Cycle loss
         recovered_A = netG_B2A(fake_B)
-        loss_cycle_ABA = criterion_cycle(recovered_A, real_A) * 10.0
+        loss_cycle_ABA = criterion_cycle(recovered_A, real_A)*10.0
 
         recovered_B = netG_A2B(fake_A)
-        loss_cycle_BAB = criterion_cycle(recovered_B, real_B) * 10.0
+        loss_cycle_BAB = criterion_cycle(recovered_B, real_B)*10.0
 
         # NCE loss
         loss_NCE_A = calculate_NCE_loss(real_A, fake_B)
         loss_NCE_B = calculate_NCE_loss(real_B, same_B)
         loss_NCE = loss_NCE_A + loss_NCE_B
 
-        # Segment loss
-        loss_segm_fake_B = calculate_segment_loss(fake_B)
-        loss_segm_same_B = calculate_segment_loss(same_B)
-        loss_segm = loss_segm_fake_B + loss_segm_same_B
+        # Patch amplifier loss
+        # loss_segm_fake_B = calculate_segment_loss(fake_B)
+        # loss_segm_same_B = calculate_segment_loss(same_B)
+        # loss_segm = loss_segm_fake_B + loss_segm_same_B
 
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
-        loss_G.backward()
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
+        # loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
 
         optimizer_G.step()
         optimizer_MLP_1.step()
@@ -286,11 +262,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         optimizer_MLP_3.step()
         optimizer_MLP_4.step()
         optimizer_MLP_5.step()
-
-        optimizer_S_in_small.step()
-        optimizer_S_in_large.step()
-        optimizer_S_out_small.step()
-        optimizer_S_out_large.step()
+        # optimizer_S_small.step()
+        # optimizer_S_large.step()
         ####################################
 
         ######### Discriminator A ##########
@@ -306,7 +279,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake)).mean()
 
         # Total loss
-        loss_D_A = (loss_D_real + loss_D_fake) * 0.5
+        loss_D_A = (loss_D_real + loss_D_fake)*0.5
         loss_D_A.backward()
 
         optimizer_D_A.step()
@@ -325,7 +298,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_D_fake = criterion_GAN(pred_fake, target_fake.expand_as(pred_fake)).mean()
 
         # Total loss
-        loss_D_B = (loss_D_real + loss_D_fake) * 0.5
+        loss_D_B = (loss_D_real + loss_D_fake)*0.5
         loss_D_B.backward()
 
         optimizer_D_B.step()
@@ -339,8 +312,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
             f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
             f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {loss_NCE.item():.4f} "
-            f"Loss_G_segm: {loss_segm.item():.4f}")
+            f"Loss_G_NCE: {(loss_NCE).item():.4f}")
+        # f"Loss_G_segm: {(loss_segm).item():.4f}"
 
         # Log the losses of each batch
         logger.log({
@@ -359,10 +332,10 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
             'Loss_G_NCE': loss_NCE.item(),
             'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item(),
-            'Loss_G_segm': loss_segm.item(),
-            'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
-            'Loss_G_segm_same_B': loss_segm_same_B.item()
+            'Loss_G_NCE_B': loss_NCE_B.item()
+            # 'Loss_G_segm': loss_segm.item(),
+            # 'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
+            # 'Loss_G_segm_same_B': loss_segm_same_B.item()
         })
 
         # Save the sample images every print_freq
@@ -421,6 +394,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
     lr_scheduler_G.step()
     lr_scheduler_D_A.step()
     lr_scheduler_D_B.step()
+    # lr_scheduler_MLP_1.step()
+    # lr_scheduler_MLP_2.step()
+    # lr_scheduler_MLP_3.step()
+    # lr_scheduler_MLP_4.step()
+    # lr_scheduler_MLP_5.step()
+    # lr_scheduler_S_small.step()
+    # lr_scheduler_S_large.step()
 
     # Save models checkpoints
     torch.save(netG_A2B.state_dict(), os.path.join(weights_dir, 'netG_A2B.pth'))
@@ -432,9 +412,4 @@ for epoch in range(opt.epoch, opt.n_epochs):
     torch.save(netMLP_3.state_dict(), os.path.join(weights_dir, 'netMLP_3.pth'))
     torch.save(netMLP_4.state_dict(), os.path.join(weights_dir, 'netMLP_4.pth'))
     torch.save(netMLP_5.state_dict(), os.path.join(weights_dir, 'netMLP_5.pth'))
-
-    torch.save(netS_in_small.state_dict(), os.path.join(weights_dir, 'netS_in_small.pth'))
-    torch.save(netS_in_large.state_dict(), os.path.join(weights_dir, 'netS_in_large.pth'))
-    torch.save(netS_out_small.state_dict(), os.path.join(weights_dir, 'netS_out_small.pth'))
-    torch.save(netS_out_large.state_dict(), os.path.join(weights_dir, 'netS_out_large.pth'))
 ######################################
