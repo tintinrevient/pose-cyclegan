@@ -447,8 +447,9 @@ def _draw_rect(image, midpoint, patch_size):
 
 def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_size):
 
-    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
-    image = image_array[:, :, ::-1].copy()  # RGB -> BGR
+    # for debug use only!
+    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
 
     painting_number = image_fpath[image_fpath.rfind('/') + 1:image_fpath.rfind('.')]
     # ONLY use the first person in the image

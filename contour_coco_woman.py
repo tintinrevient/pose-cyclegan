@@ -675,8 +675,9 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
     # plt.show()
 
-    image_array = np.array(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
-    image = image_array[:, :, ::-1].copy() # RGB -> BGR
+    # for debug use only!
+    # image_array = np.array(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
+    # image = image_array[:, :, ::-1].copy() # RGB -> BGR
 
     # debug - keypoints
     # for key, value in keypoints.items():
