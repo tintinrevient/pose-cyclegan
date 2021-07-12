@@ -153,9 +153,7 @@ fake_A_buffer = ReplayBuffer()
 fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
-transforms_ = [transforms.Resize(int(opt.size * 1.12), Image.BICUBIC),
-               transforms.CenterCrop(opt.size),  # change from RandomCrop to CenterCrop
-               transforms.RandomHorizontalFlip(),
+transforms_ = [transforms.CenterCrop(opt.size),  # change from RandomCrop to CenterCrop
                transforms.ToTensor(),
                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
@@ -201,7 +199,7 @@ def calculate_NCE_loss(source, target):
 
 def calculate_segment_loss(source, target, patches, patch_size):
 
-    loss_segm = 0
+    loss_segm = None
 
     # A - features
     source_in_features = netG_A2B(source, [4, 8], encode_only=True)
@@ -268,7 +266,10 @@ def calculate_segment_loss(source, target, patches, patch_size):
 
         loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
 
-        loss_segm += loss_segm_source + loss_segm_target
+        if loss_segm is None:
+            loss_segm = loss_segm_source + loss_segm_target
+        else:
+            loss_segm += loss_segm_source + loss_segm_target
 
     return loss_segm
 ######################################
@@ -344,11 +345,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
         patches_source = get_segm_patches_from_source(dp_coco=dp_coco,
                                                       image_tensor=real_A[0], image_fpath=path_A[0],
                                                       image_shape=shape_A,
-                                                      image_size=opt.size, patch_size=segm_patch_size)
+                                                      image_size=opt.size, patch_size=opt.patch_size / 2)
 
         patches_target = get_segm_patches_from_target(image_tensor=real_B[0], image_fpath=path_B[0],
                                                       image_shape=shape_B,
-                                                      image_size=opt.size, patch_size=segm_patch_size)
+                                                      image_size=opt.size, patch_size=opt.patch_size / 2)
 
         patches = {}
         if 'Head' in patches_source and 'Head' in patches_target:
@@ -464,7 +465,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Display the losses
         progress_bar.set_description(
-            # f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+            f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
             f"Loss_D: {(loss_D_A + loss_D_B).item():.4f} "
             f"Loss_G: {loss_G.item():.4f} "
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
