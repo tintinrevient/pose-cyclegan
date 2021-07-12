@@ -352,42 +352,52 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         patches = {}
         if 'Head' in patches_source and 'Head' in patches_target:
+            patches['Head'] = {}
             patches['Head']['A'] = patches_source['Head']
             patches['Head']['B'] = patches_target['Head']
 
         if 'Torso' in patches_source and 'Torso' in patches_target:
+            patches['Torso'] = {}
             patches['Torso']['A'] = patches_source['Torso']
             patches['Torso']['B'] = patches_target['Torso']
 
         if 'RUpperArm' in patches_source and 'RUpperArm' in patches_target:
+            patches['RUpperArm'] = {}
             patches['RUpperArm']['A'] = patches_source['RUpperArm']
             patches['RUpperArm']['B'] = patches_target['RUpperArm']
 
         if 'RLowerArm' in patches_source and 'RLowerArm' in patches_target:
+            patches['RLowerArm'] = {}
             patches['RLowerArm']['A'] = patches_source['RLowerArm']
             patches['RLowerArm']['B'] = patches_target['RLowerArm']
 
         if 'LUpperArm' in patches_source and 'LUpperArm' in patches_target:
+            patches['LUpperArm'] = {}
             patches['LUpperArm']['A'] = patches_source['LUpperArm']
             patches['LUpperArm']['B'] = patches_target['LUpperArm']
 
         if 'LLowerArm' in patches_source and 'LLowerArm' in patches_target:
+            patches['LLowerArm'] = {}
             patches['LLowerArm']['A'] = patches_source['LLowerArm']
             patches['LLowerArm']['B'] = patches_target['LLowerArm']
 
         if 'RThigh' in patches_source and 'RThigh' in patches_target:
+            patches['RThigh'] = {}
             patches['RThigh']['A'] = patches_source['RThigh']
             patches['RThigh']['B'] = patches_target['RThigh']
 
         if 'RCalf' in patches_source and 'RCalf' in patches_target:
+            patches['RCalf'] = {}
             patches['RCalf']['A'] = patches_source['RCalf']
             patches['RCalf']['B'] = patches_target['RCalf']
 
         if 'LThigh' in patches_source and 'LThigh' in patches_target:
+            patches['LThigh'] = {}
             patches['LThigh']['A'] = patches_source['LThigh']
             patches['LThigh']['B'] = patches_target['LThigh']
 
         if 'LCalf' in patches_source and 'LCalf' in patches_target:
+            patches['LCalf'] = {}
             patches['LCalf']['A'] = patches_source['LCalf']
             patches['LCalf']['B'] = patches_target['LCalf']
 
