@@ -153,9 +153,10 @@ fake_A_buffer = ReplayBuffer()
 fake_B_buffer = ReplayBuffer()
 
 # Dataset loader
-transforms_ = [transforms.CenterCrop(opt.size),  # change from RandomCrop to CenterCrop
-               transforms.ToTensor(),
-               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+transforms_ = [ transforms.Resize(int(opt.size), Image.BICUBIC),
+                transforms.CenterCrop(opt.size),  # change from RandomCrop to CenterCrop
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)) ]
 dataloader = DataLoader(ImageDataset(os.path.join('datasets', opt.dataset), transforms_=transforms_, unaligned=True),
                         batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu)
 
@@ -404,6 +405,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
             patches['LCalf'] = {}
             patches['LCalf']['A'] = patches_source['LCalf']
             patches['LCalf']['B'] = patches_target['LCalf']
+
+        print('patches:', patches)
 
         loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 2)
         loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 2)

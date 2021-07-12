@@ -523,10 +523,10 @@ def generate_index_name(image_id, person_index):
     return index_name
 
 
-def _get_keypoints(keypoints, translated_xyz):
+def _get_keypoints(keypoints, xy_scaler):
 
     keypoints = dict(zip(JOINT_ID, zip(keypoints[0::3].copy(), keypoints[1::3].copy(), keypoints[2::3].copy())))
-    keypoints = {key: np.array(value) - np.array(translated_xyz) for key, value in keypoints.items()}
+    keypoints = {key: (np.array(value[0:2]) * xy_scaler[2] - np.array(xy_scaler[0:2])) for key, value in keypoints.items()}
 
     # 1. infer the keypoints of neck and midhip, which are missing!
     if np.sum(keypoints['LShoulder']) > 0 and np.sum(keypoints['RShoulder']) > 0:
@@ -653,15 +653,30 @@ def _draw_rect(image, midpoint, patch_size):
 
 def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size, patch_size):
 
+    # for debug use only!
+    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
+
+    # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
+    # plt.show()
+
     image_id = int(image_fpath[image_fpath.rfind('_') + 1:image_fpath.rfind('.')])
     entry = dp_coco.loadImgs(image_id)[0]
 
     dp_annotation_ids = dp_coco.getAnnIds(imgIds=entry['id'])
     dp_annotations = dp_coco.loadAnns(dp_annotation_ids)
 
+    # step 0: get the scaler
     w, h = image_shape[0].item(), image_shape[1].item()
-    translated_x, translated_y = (w - image_size) / 2, (h - image_size) / 2
-    translated_xyz = [translated_x, translated_y, 0]
+    if w >= h:
+        scaler = image_size / h
+        translated_x = (w * scaler - image_size) / 2
+        translated_y = 0
+    else:
+        scaler = image_size / w
+        translated_x = 0
+        translated_y = (h * scaler - image_size) / 2
+    xy_scaler = [translated_x, translated_y, scaler]
 
     # ONLY use the first person in the image
     person_index = 1
@@ -669,15 +684,7 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
 
     # step 1: get all the keypoints
     keypoints = dp_annotation['keypoints']
-    keypoints = _get_keypoints(keypoints, translated_xyz)
-
-    # debug - plt.imshow
-    # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
-    # plt.show()
-
-    # for debug use only!
-    # image_array = np.array(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
-    # image = image_array[:, :, ::-1].copy() # RGB -> BGR
+    keypoints = _get_keypoints(keypoints, xy_scaler)
 
     # debug - keypoints
     # for key, value in keypoints.items():
@@ -734,10 +741,11 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 500
-    patch_size = 32
+    image_size = 512
+    patch_size = 32 / 2
 
-    transforms_ = [ transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+    transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
+                    transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
                     transforms.ToTensor() ]
 
     dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),

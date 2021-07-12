@@ -55,7 +55,7 @@ def _euclidian(point1, point2):
     return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
 
 
-def _get_keypoints(infile, translated_xyz):
+def _get_keypoints(infile, xy_scaler):
 
     painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
 
@@ -68,7 +68,7 @@ def _get_keypoints(infile, translated_xyz):
 
     keypoints = np.array(keypoints).astype(int)
     keypoints = dict(zip(JOINT_ID, keypoints))
-    keypoints = {key: np.array(value) - np.array(translated_xyz) for key, value in keypoints.items()}
+    keypoints = {key: (np.array(value[0:2]) * xy_scaler[2] - np.array(xy_scaler[0:2])) for key, value in keypoints.items()}
 
     # remove the non-existent keypoints
     for key, value in list(keypoints.items()):
@@ -88,7 +88,7 @@ def calc_scaler():
         person_index = 1
 
         # get the dict of keypoints
-        keypoints = _get_keypoints(infile, [0, 0, 0])
+        keypoints = _get_keypoints(infile, [0, 0, 1])
 
         # check if the keypoints of nose + neck exist!
         if 'Nose' in keypoints and 'Neck' in keypoints:
@@ -338,7 +338,7 @@ def visualize(infile, category):
     person_index = 1
 
     # step 1: get the dict of keypoints
-    keypoints = _get_keypoints(infile, [0, 0, 0])
+    keypoints = _get_keypoints(infile, [0, 0, 1])
 
     # step 2: get all the midpoints
     midpoints = _get_midpoints(infile, keypoints)
@@ -455,15 +455,31 @@ def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_s
     # ONLY use the first person in the image
     person_index = 1
 
+    # step 0: get the scaler
     w, h = image_shape[0].item(), image_shape[1].item()
-    translated_x, translated_y = (w - image_size) / 2, (h - image_size) / 2
-    translated_xyz = [translated_x, translated_y, 0]
+    if w >= h:
+        scaler = image_size / h
+        translated_x = (w * scaler - image_size) / 2
+        translated_y = 0
+    else:
+        scaler = image_size / w
+        translated_x = 0
+        translated_y = (h * scaler - image_size) / 2
+    xy_scaler = [translated_x, translated_y, scaler]
 
     # step 1: get all the keypoints
-    keypoints = _get_keypoints(image_fpath, translated_xyz)
+    keypoints = _get_keypoints(image_fpath, xy_scaler)
+
+    # debug - keypoints
+    # for key, value in keypoints.items():
+    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 2: get all the midpoints
     midpoints = _get_midpoints(image_fpath, keypoints)
+
+    # debug - midpoints
+    # for key, value in midpoints.items():
+    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 255, 0), -1)
 
     # step 3: load the data of norm_segm
     df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
@@ -510,11 +526,12 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 500
-    patch_size = 32
+    image_size = 512
+    patch_size = 32 / 2
 
-    transforms_ = [transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
-                   transforms.ToTensor()]
+    transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
+                    transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+                    transforms.ToTensor() ]
 
     dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
                                          transforms_=transforms_, unaligned=True),
