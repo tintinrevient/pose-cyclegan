@@ -428,41 +428,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
             optimizer_S_in_large.step()
             optimizer_S_out_small.step()
             optimizer_S_out_large.step()
-
-            # Display the losses
-            progress_bar.set_description(
-                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
-                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
-                f"Loss_G: {loss_G.item():.2f} "
-                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
-                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
-                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
-                f"Loss_G_NCE: {loss_NCE.item():.2f} "
-                f"Loss_G_segm: {loss_segm.item():.2f}")
-
-            # Log the losses of each batch
-            logger.log({
-                'Loss_D': (loss_D_A + loss_D_B).item(),
-                'Loss_D_A': loss_D_A.item(),
-                'Loss_D_B': loss_D_B.item(),
-                'Loss_G': loss_G.item(),
-                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
-                'Loss_G_identity_A': loss_identity_A.item(),
-                'Loss_G_identity_B': loss_identity_B.item(),
-                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
-                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
-                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
-                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
-                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
-                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
-                'Loss_G_NCE': loss_NCE.item(),
-                'Loss_G_NCE_A': loss_NCE_A.item(),
-                'Loss_G_NCE_B': loss_NCE_B.item(),
-                'Loss_G_segm': loss_segm.item(),
-                'Loss_G_segm_real': loss_segm_real.item(),
-                'Loss_G_segm_fake': loss_segm_fake.item(),
-                'Loss_G_segm_same': loss_segm_same.item()
-            })
         else:
             # Total loss
             loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
@@ -474,36 +439,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
             optimizer_MLP_3.step()
             optimizer_MLP_4.step()
             optimizer_MLP_5.step()
-
-            # Display the losses
-            progress_bar.set_description(
-                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
-                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
-                f"Loss_G: {loss_G.item():.2f} "
-                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
-                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
-                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
-                f"Loss_G_NCE: {loss_NCE.item():.2f}")
-
-            # Log the losses of each batch
-            logger.log({
-                'Loss_D': (loss_D_A + loss_D_B).item(),
-                'Loss_D_A': loss_D_A.item(),
-                'Loss_D_B': loss_D_B.item(),
-                'Loss_G': loss_G.item(),
-                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
-                'Loss_G_identity_A': loss_identity_A.item(),
-                'Loss_G_identity_B': loss_identity_B.item(),
-                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
-                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
-                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
-                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
-                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
-                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
-                'Loss_G_NCE': loss_NCE.item(),
-                'Loss_G_NCE_A': loss_NCE_A.item(),
-                'Loss_G_NCE_B': loss_NCE_B.item()
-            })
         ####################################
 
         ######### Discriminator A ##########
@@ -543,6 +478,71 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         optimizer_D_B.step()
         ####################################
+
+        # Display the losses
+        if loss_segm is not None and loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
+            progress_bar.set_description(
+                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
+                f"Loss_G: {loss_G.item():.2f} "
+                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
+                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
+                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
+                f"Loss_G_NCE: {loss_NCE.item():.2f} "
+                f"Loss_G_segm: {loss_segm.item():.2f}")
+
+            # Log the losses of each batch
+            logger.log({
+                'Loss_D': (loss_D_A + loss_D_B).item(),
+                'Loss_D_A': loss_D_A.item(),
+                'Loss_D_B': loss_D_B.item(),
+                'Loss_G': loss_G.item(),
+                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+                'Loss_G_identity_A': loss_identity_A.item(),
+                'Loss_G_identity_B': loss_identity_B.item(),
+                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
+                'Loss_G_NCE': loss_NCE.item(),
+                'Loss_G_NCE_A': loss_NCE_A.item(),
+                'Loss_G_NCE_B': loss_NCE_B.item(),
+                'Loss_G_segm': loss_segm.item(),
+                'Loss_G_segm_real': loss_segm_real.item(),
+                'Loss_G_segm_fake': loss_segm_fake.item(),
+                'Loss_G_segm_same': loss_segm_same.item()
+            })
+        else:
+            progress_bar.set_description(
+                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
+                f"Loss_G: {loss_G.item():.2f} "
+                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
+                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
+                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
+                f"Loss_G_NCE: {loss_NCE.item():.2f}")
+
+            # Log the losses of each batch
+            logger.log({
+                'Loss_D': (loss_D_A + loss_D_B).item(),
+                'Loss_D_A': loss_D_A.item(),
+                'Loss_D_B': loss_D_B.item(),
+                'Loss_G': loss_G.item(),
+                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+                'Loss_G_identity_A': loss_identity_A.item(),
+                'Loss_G_identity_B': loss_identity_B.item(),
+                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
+                'Loss_G_NCE': loss_NCE.item(),
+                'Loss_G_NCE_A': loss_NCE_A.item(),
+                'Loss_G_NCE_B': loss_NCE_B.item()
+            })
 
         # Save the sample images every print_freq
         if i % opt.print_freq == 0:
