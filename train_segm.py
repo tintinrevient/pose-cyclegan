@@ -246,20 +246,20 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # B - patches from features
         # 128 x 128 in
         target_segm_in_small = netS_in_small(target_in_features[0][:, :,
-                                             target_patch_small[1] - patch_size:target_patch_small[1] + patch_size,
-                                             target_patch_small[0] - patch_size:target_patch_small[0] + patch_size])
+                                             int(target_patch_small[1] - patch_size):int(target_patch_small[1] + patch_size),
+                                             int(target_patch_small[0] - patch_size):int(target_patch_small[0] + patch_size)])
         # 64 x 64 in
         target_segm_in_large = netS_in_large(target_in_features[1][:, :,
-                                             target_patch_large[1] - patch_size:target_patch_large[1] + patch_size,
-                                             target_patch_large[0] - patch_size:target_patch_large[0] + patch_size])
+                                             int(target_patch_large[1] - patch_size):int(target_patch_large[1] + patch_size),
+                                             int(target_patch_large[0] - patch_size):int(target_patch_large[0] + patch_size)])
         # 128 x 128 out
         target_segm_out_small = netS_out_small(target_out_features[1][:, :,
-                                               target_patch_small[1] - patch_size:target_patch_small[1] + patch_size,
-                                               target_patch_small[0] - patch_size:target_patch_small[0] + patch_size])
+                                               int(target_patch_small[1] - patch_size):int(target_patch_small[1] + patch_size),
+                                               int(target_patch_small[0] - patch_size):int(target_patch_small[0] + patch_size)])
         # 64 x 64 out
         target_segm_out_large = netS_out_large(target_out_features[0][:, :,
-                                               target_patch_large[1] - patch_size:target_patch_large[1] + patch_size,
-                                               target_patch_large[0] - patch_size:target_patch_large[0] + patch_size])
+                                               int(target_patch_large[1] - patch_size):int(target_patch_large[1] + patch_size),
+                                               int(target_patch_large[0] - patch_size):int(target_patch_large[0] + patch_size)])
 
         target_loss_in_segm = criterion_segm(target_segm_in_small, target_segm_in_large) * 10.0
         target_loss_out_segm = criterion_segm(target_segm_out_small, target_segm_out_large) * 10.0
