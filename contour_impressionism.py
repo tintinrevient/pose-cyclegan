@@ -476,13 +476,13 @@ def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_s
     patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
 
     # debug - patches
-    for midpoint in patches.items():
-        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+    # for midpoint in patches.items():
+    #     _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
 
     # debug - show the whole image
-    cv2.imshow('Contour of {}'.format(painting_number), image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('Contour of {}'.format(painting_number), image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     return patches
 
