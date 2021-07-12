@@ -211,6 +211,9 @@ def calculate_segment_loss(source, target, patches, patch_size):
 
     for name, midpoints in patches.items():
 
+        patch_size_small = patch_size / 2
+        patch_size_large = patch_size / 4
+
         source_patch_small = (np.array(midpoints['A']) / 2).astype(int)
         source_patch_large = (np.array(midpoints['A']) / 4).astype(int)
         target_patch_small = (np.array(midpoints['B']) / 2).astype(int)
@@ -219,25 +222,25 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # A - patches from features
         # 128 x 128 in
         source_segm_in_small = netS_in_small(source_in_features[0][:, :,
-                                             int(source_patch_small[1] - patch_size):int(source_patch_small[1] + patch_size),
-                                             int(source_patch_small[0] - patch_size):int(source_patch_small[0] + patch_size)])
+                                             int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
+                                             int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
         # 64 x 64 in
         source_segm_in_large = netS_in_large(source_in_features[1][:, :,
-                                             int(source_patch_large[1] - patch_size):int(source_patch_large[1] + patch_size),
-                                             int(source_patch_large[0] - patch_size):int(source_patch_large[0] + patch_size)])
+                                             int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
+                                             int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
         # 128 x 128 out
         source_segm_out_small = netS_out_small(source_out_features[1][:, :,
-                                               int(source_patch_small[1] - patch_size):int(source_patch_small[1] + patch_size),
-                                               int(source_patch_small[0] - patch_size):int(source_patch_small[0] + patch_size)])
+                                               int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
+                                               int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
         # 64 x 64 out
         source_segm_out_large = netS_out_large(source_out_features[0][:, :,
-                                               int(source_patch_large[1] - patch_size):int(source_patch_large[1] + patch_size),
-                                               int(source_patch_large[0] - patch_size):int(source_patch_large[0] + patch_size)])
+                                               int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
+                                               int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
 
-        source_loss_in_segm = criterion_segm(source_segm_in_small, source_segm_in_large) * 10.0
-        source_loss_out_segm = criterion_segm(source_segm_out_small, source_segm_out_large) * 10.0
-        source_loss_in_out_segm = criterion_segm(source_segm_in_small, source_segm_out_large) * 10.0
-        source_loss_out_in_segm = criterion_segm(source_segm_out_small, source_segm_in_large) * 10.0
+        source_loss_in_segm = criterion_segm(source_segm_in_small, source_segm_in_large) * 2.0
+        source_loss_out_segm = criterion_segm(source_segm_out_small, source_segm_out_large) * 2.0
+        source_loss_in_out_segm = criterion_segm(source_segm_in_small, source_segm_out_large) * 2.0
+        source_loss_out_in_segm = criterion_segm(source_segm_out_small, source_segm_in_large) * 2.0
 
         if source_loss_in_segm is not None and source_loss_out_segm is not None and source_loss_in_out_segm is not None and source_loss_out_in_segm is not None:
             loss_segm_source = source_loss_in_segm + source_loss_out_segm + source_loss_in_out_segm + source_loss_out_in_segm
@@ -245,25 +248,25 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # B - patches from features
         # 128 x 128 in
         target_segm_in_small = netS_in_small(target_in_features[0][:, :,
-                                             int(target_patch_small[1] - patch_size):int(target_patch_small[1] + patch_size),
-                                             int(target_patch_small[0] - patch_size):int(target_patch_small[0] + patch_size)])
+                                             int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
+                                             int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
         # 64 x 64 in
         target_segm_in_large = netS_in_large(target_in_features[1][:, :,
-                                             int(target_patch_large[1] - patch_size):int(target_patch_large[1] + patch_size),
-                                             int(target_patch_large[0] - patch_size):int(target_patch_large[0] + patch_size)])
+                                             int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
+                                             int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
         # 128 x 128 out
         target_segm_out_small = netS_out_small(target_out_features[1][:, :,
-                                               int(target_patch_small[1] - patch_size):int(target_patch_small[1] + patch_size),
-                                               int(target_patch_small[0] - patch_size):int(target_patch_small[0] + patch_size)])
+                                               int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
+                                               int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
         # 64 x 64 out
         target_segm_out_large = netS_out_large(target_out_features[0][:, :,
-                                               int(target_patch_large[1] - patch_size):int(target_patch_large[1] + patch_size),
-                                               int(target_patch_large[0] - patch_size):int(target_patch_large[0] + patch_size)])
+                                               int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
+                                               int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
 
-        target_loss_in_segm = criterion_segm(target_segm_in_small, target_segm_in_large) * 10.0
-        target_loss_out_segm = criterion_segm(target_segm_out_small, target_segm_out_large) * 10.0
-        target_loss_in_out_segm = criterion_segm(target_segm_in_small, target_segm_out_large) * 10.0
-        target_loss_out_in_segm = criterion_segm(target_segm_out_small, target_segm_in_large) * 10.0
+        target_loss_in_segm = criterion_segm(target_segm_in_small, target_segm_in_large) * 2.0
+        target_loss_out_segm = criterion_segm(target_segm_out_small, target_segm_out_large) * 2.0
+        target_loss_in_out_segm = criterion_segm(target_segm_in_small, target_segm_out_large) * 2.0
+        target_loss_out_in_segm = criterion_segm(target_segm_out_small, target_segm_in_large) * 2.0
 
         if target_loss_in_segm is not None and target_loss_out_segm is not None and target_loss_in_out_segm is not None and target_loss_out_in_segm is not None:
             loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
@@ -402,30 +405,105 @@ for epoch in range(opt.epoch, opt.n_epochs):
             patches['LCalf']['A'] = patches_source['LCalf']
             patches['LCalf']['B'] = patches_target['LCalf']
 
-        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 8)
-        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 8)
-        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size / 8)
+        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 2)
+        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 2)
+        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size / 2)
 
         if loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
+
             loss_segm = loss_segm_real + loss_segm_fake + loss_segm_same
+
+            # Total loss
+            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
+            loss_G.backward()
+
+            optimizer_G.step()
+            optimizer_MLP_1.step()
+            optimizer_MLP_2.step()
+            optimizer_MLP_3.step()
+            optimizer_MLP_4.step()
+            optimizer_MLP_5.step()
+
+            optimizer_S_in_small.step()
+            optimizer_S_in_large.step()
+            optimizer_S_out_small.step()
+            optimizer_S_out_large.step()
+
+            # Display the losses
+            progress_bar.set_description(
+                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
+                f"Loss_G: {loss_G.item():.2f} "
+                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
+                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
+                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
+                f"Loss_G_NCE: {loss_NCE.item():.2f} "
+                f"Loss_G_segm: {loss_segm.item():.2f}")
+
+            # Log the losses of each batch
+            logger.log({
+                'Loss_D': (loss_D_A + loss_D_B).item(),
+                'Loss_D_A': loss_D_A.item(),
+                'Loss_D_B': loss_D_B.item(),
+                'Loss_G': loss_G.item(),
+                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+                'Loss_G_identity_A': loss_identity_A.item(),
+                'Loss_G_identity_B': loss_identity_B.item(),
+                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
+                'Loss_G_NCE': loss_NCE.item(),
+                'Loss_G_NCE_A': loss_NCE_A.item(),
+                'Loss_G_NCE_B': loss_NCE_B.item(),
+                'Loss_G_segm': loss_segm.item(),
+                'Loss_G_segm_real': loss_segm_real.item(),
+                'Loss_G_segm_fake': loss_segm_fake.item(),
+                'Loss_G_segm_same': loss_segm_same.item()
+            })
         else:
-            loss_segm = criterion_segm(Tensor(0), Tensor(0))
+            # Total loss
+            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
+            loss_G.backward()
 
-        # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
-        loss_G.backward()
+            optimizer_G.step()
+            optimizer_MLP_1.step()
+            optimizer_MLP_2.step()
+            optimizer_MLP_3.step()
+            optimizer_MLP_4.step()
+            optimizer_MLP_5.step()
 
-        optimizer_G.step()
-        optimizer_MLP_1.step()
-        optimizer_MLP_2.step()
-        optimizer_MLP_3.step()
-        optimizer_MLP_4.step()
-        optimizer_MLP_5.step()
+            # Display the losses
+            progress_bar.set_description(
+                f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+                f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
+                f"Loss_G: {loss_G.item():.2f} "
+                f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
+                f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
+                f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
+                f"Loss_G_NCE: {loss_NCE.item():.2f}")
 
-        optimizer_S_in_small.step()
-        optimizer_S_in_large.step()
-        optimizer_S_out_small.step()
-        optimizer_S_out_large.step()
+            # Log the losses of each batch
+            logger.log({
+                'Loss_D': (loss_D_A + loss_D_B).item(),
+                'Loss_D_A': loss_D_A.item(),
+                'Loss_D_B': loss_D_B.item(),
+                'Loss_G': loss_G.item(),
+                'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
+                'Loss_G_identity_A': loss_identity_A.item(),
+                'Loss_G_identity_B': loss_identity_B.item(),
+                'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
+                'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
+                'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
+                'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
+                'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
+                'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
+                'Loss_G_NCE': loss_NCE.item(),
+                'Loss_G_NCE_A': loss_NCE_A.item(),
+                'Loss_G_NCE_B': loss_NCE_B.item()
+            })
         ####################################
 
         ######### Discriminator A ##########
@@ -465,41 +543,6 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         optimizer_D_B.step()
         ####################################
-
-        # Display the losses
-        progress_bar.set_description(
-            f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
-            f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
-            f"Loss_G: {loss_G.item():.2f} "
-            f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
-            f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
-            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
-            f"Loss_G_NCE: {loss_NCE.item():.2f} "
-            f"Loss_G_segm: {loss_segm.item():.2f}")
-
-        # Log the losses of each batch
-        logger.log({
-            'Loss_D': (loss_D_A + loss_D_B).item(),
-            'Loss_D_A': loss_D_A.item(),
-            'Loss_D_B': loss_D_B.item(),
-            'Loss_G': loss_G.item(),
-            'Loss_G_identity': (loss_identity_A + loss_identity_B).item(),
-            'Loss_G_identity_A': loss_identity_A.item(),
-            'Loss_G_identity_B': loss_identity_B.item(),
-            'Loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A).item(),
-            'Loss_G_GAN_A2B': loss_GAN_A2B.item(),
-            'Loss_G_GAN_B2A': loss_GAN_B2A.item(),
-            'Loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB).item(),
-            'Loss_G_cycle_ABA': loss_cycle_ABA.item(),
-            'Loss_G_cycle_BAB': loss_cycle_BAB.item(),
-            'Loss_G_NCE': loss_NCE.item(),
-            'Loss_G_NCE_A': loss_NCE_A.item(),
-            'Loss_G_NCE_B': loss_NCE_B.item(),
-            'Loss_G_segm': loss_segm.item(),
-            'Loss_G_segm_real': loss_segm_real.item(),
-            'Loss_G_segm_fake': loss_segm_fake.item(),
-            'Loss_G_segm_same': loss_segm_same.item()
-        })
 
         # Save the sample images every print_freq
         if i % opt.print_freq == 0:
