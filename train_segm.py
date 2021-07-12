@@ -408,12 +408,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         if loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
             loss_segm = loss_segm_real + loss_segm_fake + loss_segm_same
+        else:
+            loss_segm = criterion_segm(Tensor(0), Tensor(0))
 
         # Total loss
-        if loss_segm is not None:
-            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
-        else:
-            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
+        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
         loss_G.backward()
 
         optimizer_G.step()
