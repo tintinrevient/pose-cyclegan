@@ -16,6 +16,7 @@ from models import Generator, PatchDiscriminator, PatchMLP, PatchSample, Segment
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
+from pycocotools.coco import COCO
 from contour_coco_woman import get_segm_patches as get_segm_patches_from_source
 from contour_impressionism import get_segm_patches as get_segm_patches_from_target
 
@@ -273,6 +274,12 @@ def calculate_segment_loss(source, target, patches, patch_size):
 ######################################
 
 ############## Training ##############
+# dataset setting
+coco_folder = os.path.join('datasets', 'coco')
+
+# dense_pose annotation
+dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
+
 for epoch in range(opt.epoch, opt.n_epochs):
 
     segm_patch_size = opt.patch_size / 4 # 32 / 2 = 16 -> 16 / 2 = 8
