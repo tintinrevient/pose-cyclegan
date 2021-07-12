@@ -464,7 +464,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Display the losses
         progress_bar.set_description(
-            f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
+            # f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
             f"Loss_D: {(loss_D_A + loss_D_B).item():.4f} "
             f"Loss_G: {loss_G.item():.4f} "
             f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
