@@ -341,7 +341,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_NCE = loss_NCE_A + loss_NCE_B
 
         # Segment loss
-        patches_source = get_segm_patches_from_source(image_tensor=real_A[0], image_fpath=path_A[0],
+        patches_source = get_segm_patches_from_source(dp_coco=dp_coco,
+                                                      image_tensor=real_A[0], image_fpath=path_A[0],
                                                       image_shape=shape_A,
                                                       image_size=opt.size, patch_size=segm_patch_size)
 
