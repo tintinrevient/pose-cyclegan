@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import os.path
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
@@ -15,6 +16,8 @@ from models import Generator, PatchDiscriminator, PatchMLP, PatchSample, Segment
 from losses import PatchNCELoss
 from utils import ReplayBuffer, LambdaLR, LossLogger, weights_init_normal
 from datasets import ImageDataset
+from contour_coco_woman import get_segm_patches as get_segm_patches_from_source
+from contour_impressionism import get_segm_patches as get_segm_patches_from_target
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
@@ -195,30 +198,84 @@ def calculate_NCE_loss(source, target):
     return loss_NCE
 
 
-def calculate_segment_loss(source):
+def calculate_segment_loss(source, target, patches, patch_size):
 
-    in_features = netG_A2B(source, [4, 8], encode_only=True)
-    out_features = netG_A2B(source, [16, 20], encode_only=True)
+    loss_segm = 0
 
-    # test run - to amplify the center of a tensor
-    segm_in_small = netS_in_small(in_features[0][:, :, 56:72, 56:72])
-    segm_in_large = netS_in_large(in_features[1][:, :, 24:40, 24:40])
+    # A - features
+    source_in_features = netG_A2B(source, [4, 8], encode_only=True)
+    source_out_features = netG_A2B(source, [16, 20], encode_only=True)
 
-    segm_out_small = netS_out_small(out_features[1][:, :, 56:72, 56:72])
-    segm_out_large = netS_out_large(out_features[0][:, :, 24:40, 24:40])
+    # B
+    target_in_features = netG_B2A(target, [4, 8], encode_only=True)
+    target_out_features = netG_B2A(target, [16, 20], encode_only=True)
 
-    loss_in_segm = criterion_segm(segm_in_small, segm_in_large) * 10.0
-    loss_out_segm = criterion_segm(segm_out_small, segm_out_large) * 10.0
-    loss_in_out_segm = criterion_segm(segm_in_small, segm_out_large) * 10.0
-    loss_out_in_segm = criterion_segm(segm_out_small, segm_in_large) * 10.0
+    for name, midpoints in patches.items():
 
-    loss_segm = loss_in_segm + loss_out_segm + loss_in_out_segm + loss_out_in_segm
+        source_patch_small = (np.array(midpoints['A']) / 2).astype(int)
+        source_patch_large = (np.array(midpoints['A']) / 4).astype(int)
+        target_patch_small = (np.array(midpoints['B']) / 2).astype(int)
+        target_patch_large = (np.array(midpoints['B']) / 4).astype(int)
+
+        # A - patches from features
+        # 128 x 128 in
+        source_segm_in_small = netS_in_small(source_in_features[0][:, :,
+                                             source_patch_small[1]-patch_size:source_patch_small[1]+patch_size,
+                                             source_patch_small[0]-patch_size:source_patch_small[0]+patch_size])
+        # 64 x 64 in
+        source_segm_in_large = netS_in_large(source_in_features[1][:, :,
+                                             source_patch_large[1] - patch_size:source_patch_large[1] + patch_size,
+                                             source_patch_large[0] - patch_size:source_patch_large[0] + patch_size])
+        # 128 x 128 out
+        source_segm_out_small = netS_out_small(source_out_features[1][:, :,
+                                               source_patch_small[1] - patch_size:source_patch_small[1] + patch_size,
+                                               source_patch_small[0] - patch_size:source_patch_small[0] + patch_size])
+        # 64 x 64 out
+        source_segm_out_large = netS_out_large(source_out_features[0][:, :,
+                                               source_patch_large[1] - patch_size:source_patch_large[1] + patch_size,
+                                               source_patch_large[0] - patch_size:source_patch_large[0] + patch_size])
+
+        source_loss_in_segm = criterion_segm(source_segm_in_small, source_segm_in_large) * 10.0
+        source_loss_out_segm = criterion_segm(source_segm_out_small, source_segm_out_large) * 10.0
+        source_loss_in_out_segm = criterion_segm(source_segm_in_small, source_segm_out_large) * 10.0
+        source_loss_out_in_segm = criterion_segm(source_segm_out_small, source_segm_in_large) * 10.0
+
+        loss_segm_source = source_loss_in_segm + source_loss_out_segm + source_loss_in_out_segm + source_loss_out_in_segm
+
+        # B - patches from features
+        # 128 x 128 in
+        target_segm_in_small = netS_in_small(target_in_features[0][:, :,
+                                             target_patch_small[1] - patch_size:target_patch_small[1] + patch_size,
+                                             target_patch_small[0] - patch_size:target_patch_small[0] + patch_size])
+        # 64 x 64 in
+        target_segm_in_large = netS_in_large(target_in_features[1][:, :,
+                                             target_patch_large[1] - patch_size:target_patch_large[1] + patch_size,
+                                             target_patch_large[0] - patch_size:target_patch_large[0] + patch_size])
+        # 128 x 128 out
+        target_segm_out_small = netS_out_small(target_out_features[1][:, :,
+                                               target_patch_small[1] - patch_size:target_patch_small[1] + patch_size,
+                                               target_patch_small[0] - patch_size:target_patch_small[0] + patch_size])
+        # 64 x 64 out
+        target_segm_out_large = netS_out_large(target_out_features[0][:, :,
+                                               target_patch_large[1] - patch_size:target_patch_large[1] + patch_size,
+                                               target_patch_large[0] - patch_size:target_patch_large[0] + patch_size])
+
+        target_loss_in_segm = criterion_segm(target_segm_in_small, target_segm_in_large) * 10.0
+        target_loss_out_segm = criterion_segm(target_segm_out_small, target_segm_out_large) * 10.0
+        target_loss_in_out_segm = criterion_segm(target_segm_in_small, target_segm_out_large) * 10.0
+        target_loss_out_in_segm = criterion_segm(target_segm_out_small, target_segm_in_large) * 10.0
+
+        loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
+
+        loss_segm += loss_segm_source + loss_segm_target
 
     return loss_segm
 ######################################
 
 ############## Training ##############
 for epoch in range(opt.epoch, opt.n_epochs):
+
+    segm_patch_size = opt.patch_size / 4 # 32 / 2 = 16 -> 16 / 2 = 8
 
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     logger = LossLogger()
@@ -227,7 +284,12 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
+        path_A = batch['path_A']
+        shape_A = batch['shape_A']
+
         real_B = Variable(input_B.copy_(batch['B']))
+        path_B = batch['path_B']
+        shape_B = batch['shape_B']
 
         ###### Generators A2B and B2A ######
         optimizer_G.zero_grad()
@@ -272,9 +334,60 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_NCE = loss_NCE_A + loss_NCE_B
 
         # Segment loss
-        loss_segm_fake_B = calculate_segment_loss(fake_B)
-        loss_segm_same_B = calculate_segment_loss(same_B)
-        loss_segm = loss_segm_fake_B + loss_segm_same_B
+        patches_source = get_segm_patches_from_source(image_tensor=real_A[0], image_fpath=path_A[0],
+                                                      image_shape=shape_A,
+                                                      image_size=opt.size, patch_size=segm_patch_size)
+
+        patches_target = get_segm_patches_from_target(image_tensor=real_B[0], image_fpath=path_B[0],
+                                                      image_shape=shape_B,
+                                                      image_size=opt.size, patch_size=segm_patch_size)
+
+        patches = {}
+        if 'Head' in patches_source and 'Head' in patches_target:
+            patches['Head']['A'] = patches_source['Head']
+            patches['Head']['B'] = patches_target['Head']
+
+        if 'Torso' in patches_source and 'Torso' in patches_target:
+            patches['Torso']['A'] = patches_source['Torso']
+            patches['Torso']['B'] = patches_target['Torso']
+
+        if 'RUpperArm' in patches_source and 'RUpperArm' in patches_target:
+            patches['RUpperArm']['A'] = patches_source['RUpperArm']
+            patches['RUpperArm']['B'] = patches_target['RUpperArm']
+
+        if 'RLowerArm' in patches_source and 'RLowerArm' in patches_target:
+            patches['RLowerArm']['A'] = patches_source['RLowerArm']
+            patches['RLowerArm']['B'] = patches_target['RLowerArm']
+
+        if 'LUpperArm' in patches_source and 'LUpperArm' in patches_target:
+            patches['LUpperArm']['A'] = patches_source['LUpperArm']
+            patches['LUpperArm']['B'] = patches_target['LUpperArm']
+
+        if 'LLowerArm' in patches_source and 'LLowerArm' in patches_target:
+            patches['LLowerArm']['A'] = patches_source['LLowerArm']
+            patches['LLowerArm']['B'] = patches_target['LLowerArm']
+
+        if 'RThigh' in patches_source and 'RThigh' in patches_target:
+            patches['RThigh']['A'] = patches_source['RThigh']
+            patches['RThigh']['B'] = patches_target['RThigh']
+
+        if 'RCalf' in patches_source and 'RCalf' in patches_target:
+            patches['RCalf']['A'] = patches_source['RCalf']
+            patches['RCalf']['B'] = patches_target['RCalf']
+
+        if 'LThigh' in patches_source and 'LThigh' in patches_target:
+            patches['LThigh']['A'] = patches_source['LThigh']
+            patches['LThigh']['B'] = patches_target['LThigh']
+
+        if 'LCalf' in patches_source and 'LCalf' in patches_target:
+            patches['LCalf']['A'] = patches_source['LCalf']
+            patches['LCalf']['B'] = patches_target['LCalf']
+
+        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=segm_patch_size)
+        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=segm_patch_size)
+        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=segm_patch_size)
+
+        loss_segm = loss_segm_real + loss_segm_fake + loss_segm_same
 
         # Total loss
         loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
@@ -361,8 +474,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
             'Loss_G_NCE_A': loss_NCE_A.item(),
             'Loss_G_NCE_B': loss_NCE_B.item(),
             'Loss_G_segm': loss_segm.item(),
-            'Loss_G_segm_fake_B': loss_segm_fake_B.item(),
-            'Loss_G_segm_same_B': loss_segm_same_B.item()
+            'Loss_G_segm_real': loss_segm_real.item(),
+            'Loss_G_segm_fake': loss_segm_fake.item(),
+            'Loss_G_segm_same': loss_segm_same.item()
         })
 
         # Save the sample images every print_freq
