@@ -651,7 +651,7 @@ def _draw_rect(image, midpoint, patch_size):
     cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR[midpoint_key], thickness=thickness)
 
 
-def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_size):
+def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size, patch_size):
 
     image_id = int(image_fpath[image_fpath.rfind('_') + 1:image_fpath.rfind('.')])
     entry = dp_coco.loadImgs(image_id)[0]
@@ -757,5 +757,6 @@ if __name__ == '__main__':
         path_B = batch['path_B'][0]
         shape_B = batch['shape_B']
 
-        patches = get_segm_patches(image_tensor=real_A, image_fpath=path_A, image_shape=shape_A,
+        patches = get_segm_patches(dp_coco=dp_coco,
+                                   image_tensor=real_A, image_fpath=path_A, image_shape=shape_A,
                                    image_size=image_size, patch_size=patch_size)
