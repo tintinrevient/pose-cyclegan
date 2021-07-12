@@ -2,16 +2,26 @@ import os, re, glob, cv2
 import numpy as np
 import pandas as pd
 
-
-# the path to the data of keypoints
-openpose_keypoints_dir = os.path.join('output', 'data', 'impressionism')
+from torchvision import transforms
+import torch
+from torch.utils.data import DataLoader
+from torch.autograd import Variable
+from PIL import Image
+from matplotlib import pyplot as plt
+from datasets import ImageDataset
 
 # the path to the data of contour.csv
 fname_contour = os.path.join('output', 'contour.csv')
 
+# the path to the data of keypoints
+openpose_keypoints_dir = os.path.join('output', 'data', 'impressionism')
+
 # the path to the data of norm_segm.csv
 # fname_norm_segm = os.path.join('output', 'norm_segm_impressionism_keypoints.csv')
-fname_norm_segm = os.path.join('output', 'norm_segm_impressionism.csv')
+fname_norm_segm_impressionism = os.path.join('output', 'norm_segm_impressionism.csv')
+
+# dataset setting
+coco_folder = os.path.join('datasets', 'coco')
 
 # Body 25 Keypoints
 JOINT_ID = [
@@ -45,7 +55,7 @@ def _euclidian(point1, point2):
     return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
 
 
-def _get_keypoints(infile):
+def _get_keypoints(infile, translated_xyz):
 
     painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
 
@@ -57,14 +67,15 @@ def _get_keypoints(infile):
     keypoints = people_keypoints[0]
 
     keypoints = np.array(keypoints).astype(int)
-    keypoints_dict = dict(zip(JOINT_ID, keypoints))
+    keypoints = dict(zip(JOINT_ID, keypoints))
+    keypoints = {key: np.array(value) - np.array(translated_xyz) for key, value in keypoints.items()}
 
     # remove the non-existent keypoints
-    for key, value in list(keypoints_dict.items()):
+    for key, value in list(keypoints.items()):
         if np.sum(value) == 0:  # [x, y, sore] -> score = 0
-            keypoints_dict.pop(key, None)
+            keypoints.pop(key, None)
 
-    return keypoints_dict
+    return keypoints
 
 
 def calc_scaler():
@@ -77,7 +88,7 @@ def calc_scaler():
         person_index = 1
 
         # get the dict of keypoints
-        keypoints = _get_keypoints(infile)
+        keypoints = _get_keypoints(infile, [0, 0, 0])
 
         # check if the keypoints of nose + neck exist!
         if 'Nose' in keypoints and 'Neck' in keypoints:
@@ -92,7 +103,7 @@ def calc_scaler():
 
         index_name = _generate_index_name(infile, person_index)
         df = pd.DataFrame(data=norm_segm_dict, index=[index_name])
-        with open(fname_norm_segm, 'a') as csv_file:
+        with open(fname_norm_segm_impressionism, 'a') as csv_file:
             df.to_csv(csv_file, index=True, header=False)
 
         norm_segm_dict = {}
@@ -326,8 +337,8 @@ def visualize(infile, category):
     painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
     person_index = 1
 
-    # step 1: # get the dict of keypoints
-    keypoints = _get_keypoints(infile)
+    # step 1: get the dict of keypoints
+    keypoints = _get_keypoints(infile, [0, 0, 0])
 
     # step 2: get all the midpoints
     midpoints = _get_midpoints(infile, keypoints)
@@ -339,7 +350,7 @@ def visualize(infile, category):
     df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
     contour_dict = df_contour.loc[category]
 
-    df_norm_segm = pd.read_csv(fname_norm_segm, index_col=0)
+    df_norm_segm = pd.read_csv(fname_norm_segm_impressionism, index_col=0)
     index_name = generate_index_name(infile, person_index)
     contour_dict['scaler'] = df_norm_segm.loc[index_name]['scaler']
 
@@ -367,6 +378,115 @@ def generate_index_name(infile, person_index):
     return index_name
 
 
+def _is_inside(midpoint, patch_size, image_size):
+
+    point_top_left = np.array(midpoint[0:2]) - np.array([patch_size, patch_size])
+    point_bottom_right = np.array(midpoint[0:2]) + np.array([patch_size, patch_size])
+
+    if (point_top_left > 0).all() and (point_top_left < image_size).all() and (point_bottom_right > 0).all() and (point_bottom_right < image_size).all():
+        return True
+    else:
+        return False
+
+
+def _get_patches(midpoints, patch_size, image_size, contour_dict):
+
+    patches = {}
+
+    # scaler
+    scaler = 1 / contour_dict['scaler']
+
+    # head
+    if 'Head' in midpoints and _is_inside(midpoints['Head'], patch_size, image_size):
+        patches['Head'] = midpoints['Head'][0:2]
+
+    # torso
+    if 'Torso' in midpoints and _is_inside(midpoints['Torso'], patch_size, image_size):
+        patches['Torso'] = midpoints['Torso'][0:2]
+
+    # upper limbs
+    if 'RUpperArm' in midpoints and _is_inside(midpoints['RUpperArm'], patch_size, image_size):
+        patches['RUpperArm'] = midpoints['RUpperArm'][0:2]
+
+    if 'RLowerArm' in midpoints and _is_inside(midpoints['RLowerArm'], patch_size, image_size):
+        patches['RLowerArm'] = midpoints['RLowerArm'][0:2]
+
+    if 'LUpperArm' in midpoints and _is_inside(midpoints['LUpperArm'], patch_size, image_size):
+        patches['LUpperArm'] = midpoints['LUpperArm'][0:2]
+
+    if 'LLowerArm' in midpoints and _is_inside(midpoints['LLowerArm'], patch_size, image_size):
+        patches['LLowerArm'] = midpoints['LLowerArm'][0:2]
+
+    # lower limbs
+    if 'RThigh' in midpoints and _is_inside(midpoints['RThigh'], patch_size, image_size):
+        patches['RThigh'] = midpoints['RThigh'][0:2]
+
+    if 'RCalf' in midpoints and _is_inside(midpoints['RCalf'], patch_size, image_size):
+        patches['RCalf'] = midpoints['RCalf'][0:2]
+
+    if 'LThigh' in midpoints and _is_inside(midpoints['LThigh'], patch_size, image_size):
+        patches['LThigh'] = midpoints['LThigh'][0:2]
+
+    if 'LCalf' in midpoints and _is_inside(midpoints['LCalf'], patch_size, image_size):
+        patches['LCalf'] = midpoints['LCalf'][0:2]
+
+    return patches
+
+
+def _draw_rect(image, midpoint, patch_size):
+
+    midpoint_key, midpoint_value = midpoint
+
+    rect = ((midpoint_value[0], midpoint_value[1]),
+            (patch_size, patch_size),
+            0)
+    box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
+    box = np.int0(box)
+    cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR[midpoint_key], thickness=thickness)
+
+
+def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_size):
+
+    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    image = image_array[:, :, ::-1].copy()  # RGB -> BGR
+
+    painting_number = image_fpath[image_fpath.rfind('/') + 1:image_fpath.rfind('.')]
+    # ONLY use the first person in the image
+    person_index = 1
+
+    w, h = image_shape[0].item(), image_shape[1].item()
+    translated_x, translated_y = (w - image_size) / 2, (h - image_size) / 2
+    translated_xyz = [translated_x, translated_y, 0]
+
+    # step 1: get all the keypoints
+    keypoints = _get_keypoints(image_fpath, translated_xyz)
+
+    # step 2: get all the midpoints
+    midpoints = _get_midpoints(image_fpath, keypoints)
+
+    # step 3: load the data of norm_segm
+    df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
+    contour_dict = df_contour.loc['impressionism']
+
+    df_norm_segm = pd.read_csv(fname_norm_segm_impressionism, index_col=0)
+    index_name = generate_index_name(image_fpath, person_index)
+    contour_dict['scaler'] = df_norm_segm.loc[index_name]['scaler']
+
+    # step 4: draw the norm_segm on the original image
+    patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
+
+    # debug - patches
+    for midpoint in patches.items():
+        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+
+    # debug - show the whole image
+    cv2.imshow('Contour of {}'.format(painting_number), image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return patches
+
+
 if __name__ == '__main__':
 
     # step 1: calculate and save the scalers in 'norm_segm_impressionism_xx.csv'
@@ -375,13 +495,43 @@ if __name__ == '__main__':
     # step 2: visualize contour on image
     thickness = 3
 
+    # option 1 - visualize the contour
     # for a single image
     # visualize(infile='datasets/surf2nude/train/C/17245.jpg', category='impressionism')
 
     # for multiple images
-    for image_idx, infile in enumerate(glob.glob('datasets/surf2nude/train/C/*.jpg')):
+    # for image_idx, infile in enumerate(glob.glob('datasets/surf2nude/train/C/*.jpg')):
+    #
+    #     painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
+    #     print('image {}:'.format(image_idx), painting_number)
+    #
+    #     visualize(infile=infile, category='impressionism')
 
-        painting_number = infile[infile.rfind('/') + 1:infile.rfind('.')]
-        print('image {}:'.format(image_idx), painting_number)
+    # option 2 - use the contour for the patch of segments
+    # global settings
+    image_size = 500
+    patch_size = 32
 
-        visualize(infile=infile, category='impressionism')
+    transforms_ = [transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+                   transforms.ToTensor()]
+
+    dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
+                                         transforms_=transforms_, unaligned=True),
+                            batch_size=1, shuffle=True, num_workers=8)
+
+    input_A = torch.Tensor(1, 3, image_size, image_size)
+    input_B = torch.Tensor(1, 3, image_size, image_size)
+
+    for i, batch in enumerate(dataloader):
+        # A
+        real_A = Variable(input_A.copy_(batch['A']))[0]
+        path_A = batch['path_A'][0]
+        shape_A = batch['shape_A']
+
+        # B
+        real_B = Variable(input_B.copy_(batch['B']))[0]
+        path_B = batch['path_B'][0]
+        shape_B = batch['shape_B']
+
+        patches = get_segm_patches(image_tensor=real_B, image_fpath=path_B, image_shape=shape_B,
+                                   image_size=image_size, patch_size=patch_size)

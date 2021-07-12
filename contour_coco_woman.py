@@ -6,6 +6,14 @@ import pycocotools.mask as mask_util
 from scipy.stats import wasserstein_distance
 import pickle
 
+from torchvision import transforms
+import torch
+from torch.utils.data import DataLoader
+from torch.autograd import Variable
+from PIL import Image
+from matplotlib import pyplot as plt
+from datasets import ImageDataset
+
 # the path to the data of contour.csv
 fname_contour = os.path.join('output', 'contour.csv')
 
@@ -14,9 +22,6 @@ fname_norm_segm_coco_woman = os.path.join('output', 'norm_segm_coco_woman.csv')
 
 # dataset setting
 coco_folder = os.path.join('datasets', 'coco')
-
-# dense_pose annotation
-dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
 
 # coarse segmentation:
 # 0 = Background
@@ -36,17 +41,17 @@ COARSE_ID = [
 
 # BGRA -> alpha channel: 0 = transparent, 255 = non-transparent
 COARSE_TO_COLOR = {
-    'Background': [255, 255, 255, 255],
-    'Torso': [191, 78, 22, 255],
-    'RThigh': [167, 181, 44, 255],
-    'LThigh': [141, 187, 91, 255],
-    'RCalf': [114, 191, 147, 255],
-    'LCalf': [96, 188, 192, 255],
-    'LUpperArm': [87, 207, 112, 255],
-    'RUpperArm': [55, 218, 162, 255],
-    'LLowerArm': [25, 226, 216, 255],
-    'RLowerArm': [37, 231, 253, 255],
-    'Head': [14, 251, 249, 255]
+    'Background': [255, 255, 255],
+    'Torso': [191, 78, 22],
+    'RThigh': [167, 181, 44],
+    'LThigh': [141, 187, 91],
+    'RCalf': [114, 191, 147],
+    'LCalf': [96, 188, 192],
+    'LUpperArm': [87, 207, 112],
+    'RUpperArm': [55, 218, 162],
+    'LLowerArm': [25, 226, 216],
+    'RLowerArm': [37, 231, 253],
+    'Head': [14, 251, 249]
 }
 
 # DensePose JOINT_ID
@@ -438,6 +443,9 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
 
 def visualize(image_id, category):
 
+    # dense_pose annotation
+    dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
+
     entry = dp_coco.loadImgs(image_id)[0]
     image_fpath = os.path.join('datasets/surf2nude/train/A', entry['file_name'])
 
@@ -515,19 +523,239 @@ def generate_index_name(image_id, person_index):
     return index_name
 
 
+def _get_keypoints(keypoints, translated_xyz):
+
+    keypoints = dict(zip(JOINT_ID, zip(keypoints[0::3].copy(), keypoints[1::3].copy(), keypoints[2::3].copy())))
+    keypoints = {key: np.array(value) - np.array(translated_xyz) for key, value in keypoints.items()}
+
+    # 1. infer the keypoints of neck and midhip, which are missing!
+    if np.sum(keypoints['LShoulder']) > 0 and np.sum(keypoints['RShoulder']) > 0:
+        keypoints['Neck'] = ((keypoints['LShoulder'] + keypoints['RShoulder']) / 2).astype(int)
+
+    if np.sum(keypoints['LHip']) > 0 and np.sum(keypoints['RHip']) > 0:
+        keypoints['MidHip'] = ((keypoints['LHip'] + keypoints['RHip']) / 2).astype(int)
+
+    # 2. remove the empty keys
+    for key, value in list(keypoints.items()):
+        if np.sum(value) < 1: # key: [0, 0, 0]
+            keypoints.pop(key, None)
+
+    return keypoints
+
+
+def _get_midpoints(keypoints):
+
+    midpoints = {}
+
+    # head centroid
+    if 'Nose' in keypoints:
+        midpoints['Head'] = keypoints['Nose']
+
+    # torso midpoint
+    if 'Neck' in keypoints and 'MidHip' in keypoints:
+        midpoints['Torso'] = (keypoints['Neck'] + keypoints['MidHip']) / 2
+
+    # upper limbs
+    if 'RShoulder' in keypoints and 'RElbow' in keypoints:
+        midpoints['RUpperArm'] = (keypoints['RShoulder'] + keypoints['RElbow']) / 2
+
+    if 'RElbow' in keypoints and 'RWrist' in keypoints:
+        midpoints['RLowerArm'] = (keypoints['RElbow'] + keypoints['RWrist']) / 2
+
+    if 'LShoulder' in keypoints and 'LElbow' in keypoints:
+        midpoints['LUpperArm'] = (keypoints['LShoulder'] + keypoints['LElbow']) / 2
+
+    if 'LElbow' in keypoints and 'LWrist' in keypoints:
+        midpoints['LLowerArm'] = (keypoints['LElbow'] + keypoints['LWrist']) / 2
+
+    # lower limbs
+    if 'RHip' in keypoints and 'RKnee' in keypoints:
+        midpoints['RThigh'] = (keypoints['RHip'] + keypoints['RKnee']) / 2
+
+    if 'RKnee' in keypoints and 'RAnkle' in keypoints:
+        midpoints['RCalf'] = (keypoints['RKnee'] + keypoints['RAnkle']) / 2
+
+    if 'LHip' in keypoints and 'LKnee' in keypoints:
+        midpoints['LThigh'] = (keypoints['LHip'] + keypoints['LKnee']) / 2
+
+    if 'LKnee' in keypoints and 'LAnkle' in keypoints:
+        midpoints['LCalf'] = (keypoints['LKnee'] + keypoints['LAnkle']) / 2
+
+    return midpoints
+
+
+def _is_inside(midpoint, patch_size, image_size):
+
+    point_top_left = np.array(midpoint[0:2]) - np.array([patch_size, patch_size])
+    point_bottom_right = np.array(midpoint[0:2]) + np.array([patch_size, patch_size])
+
+    if (point_top_left > 0).all() and (point_top_left < image_size).all() and (point_bottom_right > 0).all() and (point_bottom_right < image_size).all():
+        return True
+    else:
+        return False
+
+
+def _get_patches(midpoints, patch_size, image_size, contour_dict):
+
+    patches = {}
+
+    # scaler
+    scaler = 1 / contour_dict['scaler']
+
+    # head
+    if 'Head' in midpoints and _is_inside(midpoints['Head'], patch_size, image_size):
+        patches['Head'] = midpoints['Head'][0:2]
+
+    # torso
+    if 'Torso' in midpoints and _is_inside(midpoints['Torso'], patch_size, image_size):
+        patches['Torso'] = midpoints['Torso'][0:2]
+
+    # upper limbs
+    if 'RUpperArm' in midpoints and _is_inside(midpoints['RUpperArm'], patch_size, image_size):
+        patches['RUpperArm'] = midpoints['RUpperArm'][0:2]
+
+    if 'RLowerArm' in midpoints and _is_inside(midpoints['RLowerArm'], patch_size, image_size):
+        patches['RLowerArm'] = midpoints['RLowerArm'][0:2]
+
+    if 'LUpperArm' in midpoints and _is_inside(midpoints['LUpperArm'], patch_size, image_size):
+        patches['LUpperArm'] = midpoints['LUpperArm'][0:2]
+
+    if 'LLowerArm' in midpoints and _is_inside(midpoints['LLowerArm'], patch_size, image_size):
+        patches['LLowerArm'] = midpoints['LLowerArm'][0:2]
+
+    # lower limbs
+    if 'RThigh' in midpoints and _is_inside(midpoints['RThigh'], patch_size, image_size):
+        patches['RThigh'] = midpoints['RThigh'][0:2]
+
+    if 'RCalf' in midpoints and _is_inside(midpoints['RCalf'], patch_size, image_size):
+        patches['RCalf'] = midpoints['RCalf'][0:2]
+
+    if 'LThigh' in midpoints and _is_inside(midpoints['LThigh'], patch_size, image_size):
+        patches['LThigh'] = midpoints['LThigh'][0:2]
+
+    if 'LCalf' in midpoints and _is_inside(midpoints['LCalf'], patch_size, image_size):
+        patches['LCalf'] = midpoints['LCalf'][0:2]
+
+    return patches
+
+
+def _draw_rect(image, midpoint, patch_size):
+
+    midpoint_key, midpoint_value = midpoint
+
+    rect = ((midpoint_value[0], midpoint_value[1]),
+            (patch_size, patch_size),
+            0)
+    box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
+    box = np.int0(box)
+    cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR[midpoint_key], thickness=thickness)
+
+
+def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_size):
+
+    image_id = int(image_fpath[image_fpath.rfind('_') + 1:image_fpath.rfind('.')])
+    entry = dp_coco.loadImgs(image_id)[0]
+
+    dp_annotation_ids = dp_coco.getAnnIds(imgIds=entry['id'])
+    dp_annotations = dp_coco.loadAnns(dp_annotation_ids)
+
+    w, h = image_shape[0].item(), image_shape[1].item()
+    translated_x, translated_y = (w - image_size) / 2, (h - image_size) / 2
+    translated_xyz = [translated_x, translated_y, 0]
+
+    # ONLY use the first person in the image
+    person_index = 1
+    dp_annotation = dp_annotations[0]
+
+    # step 1: get all the keypoints
+    keypoints = dp_annotation['keypoints']
+    keypoints = _get_keypoints(keypoints, translated_xyz)
+
+    # debug - plt.imshow
+    # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
+    # plt.show()
+
+    image_array = np.array(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
+    image = image_array[:, :, ::-1].copy() # RGB -> BGR
+
+    # debug - keypoints
+    # for key, value in keypoints.items():
+    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
+
+    # step 2: get all the midpoints
+    midpoints = _get_midpoints(keypoints)
+
+    # debug - midpoints
+    # for key, value in midpoints.items():
+    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 255, 0), -1)
+
+    # step 3: load the data of contour
+    df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
+    contour_dict = df_contour.loc['coco']
+
+    df_norm_segm = pd.read_csv(fname_norm_segm_coco_woman, index_col=0)
+    index_name = generate_index_name(image_id, person_index)
+    contour_dict['scaler'] = df_norm_segm.loc[index_name]['scaler']
+
+    # step 4: draw the norm_segm on the original image
+    patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
+
+    # debug - patches
+    for midpoint in patches.items():
+        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+
+    # debug - show the whole image
+    cv2.imshow('Contour of {}'.format(image_id), image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return patches
+
+
 if __name__ == '__main__':
 
     # settings
     thickness = 4
 
-    # category = coco
-    image_id = 456345
+    # dense_pose annotation
+    dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
 
+    # option 1 - visualize the contour
     # for a single image
+    # image_id = 456345
     # visualize(image_id=image_id, category='coco')
 
     # for multiple images
-    for image_idx, image_infile in enumerate(glob.glob('datasets/surf2nude/train/A/*.jpg')):
-        image_id = int(image_infile[image_infile.rfind('_')+1:image_infile.rfind('.')])
-        print('image {}:'.format(image_idx), image_id)
-        visualize(image_id=image_id, category='coco')
+    # for image_idx, image_infile in enumerate(glob.glob('datasets/surf2nude/train/A/*.jpg')):
+    #     image_id = int(image_infile[image_infile.rfind('_')+1:image_infile.rfind('.')])
+    #     print('image {}:'.format(image_idx), image_id)
+    #     visualize(image_id=image_id, category='coco')
+
+    # option 2 - use the contour for the patch of segments
+    # global settings
+    image_size = 500
+    patch_size = 32
+
+    transforms_ = [ transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+                    transforms.ToTensor() ]
+
+    dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
+                            transforms_=transforms_, unaligned=True),
+                            batch_size=1, shuffle=True, num_workers=8)
+
+    input_A = torch.Tensor(1, 3, image_size, image_size)
+    input_B = torch.Tensor(1, 3, image_size, image_size)
+
+    for i, batch in enumerate(dataloader):
+        # A
+        real_A = Variable(input_A.copy_(batch['A']))[0]
+        path_A = batch['path_A'][0]
+        shape_A = batch['shape_A']
+
+        # B
+        real_B = Variable(input_B.copy_(batch['B']))[0]
+        path_B = batch['path_B'][0]
+        shape_B = batch['shape_B']
+
+        patches = get_segm_patches(image_tensor=real_A, image_fpath=path_A, image_shape=shape_A,
+                                   image_size=image_size, patch_size=patch_size)
