@@ -239,7 +239,8 @@ def calculate_segment_loss(source, target, patches, patch_size):
         source_loss_in_out_segm = criterion_segm(source_segm_in_small, source_segm_out_large) * 10.0
         source_loss_out_in_segm = criterion_segm(source_segm_out_small, source_segm_in_large) * 10.0
 
-        loss_segm_source = source_loss_in_segm + source_loss_out_segm + source_loss_in_out_segm + source_loss_out_in_segm
+        if source_loss_in_segm is not None and source_loss_out_segm is not None and source_loss_in_out_segm is not None and source_loss_out_in_segm is not None:
+            loss_segm_source = source_loss_in_segm + source_loss_out_segm + source_loss_in_out_segm + source_loss_out_in_segm
 
         # B - patches from features
         # 128 x 128 in
@@ -264,11 +265,12 @@ def calculate_segment_loss(source, target, patches, patch_size):
         target_loss_in_out_segm = criterion_segm(target_segm_in_small, target_segm_out_large) * 10.0
         target_loss_out_in_segm = criterion_segm(target_segm_out_small, target_segm_in_large) * 10.0
 
-        loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
+        if target_loss_in_segm is not None and target_loss_out_segm is not None and target_loss_in_out_segm is not None and target_loss_out_in_segm is not None:
+            loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
 
-        if loss_segm is None:
+        if loss_segm is None and loss_segm_source is not None and loss_segm_target is not None:
             loss_segm = loss_segm_source + loss_segm_target
-        else:
+        elif loss_segm is not None and loss_segm_source is not None and loss_segm_target is not None:
             loss_segm += loss_segm_source + loss_segm_target
 
     return loss_segm
@@ -282,8 +284,6 @@ coco_folder = os.path.join('datasets', 'coco')
 dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
 
 for epoch in range(opt.epoch, opt.n_epochs):
-
-    segm_patch_size = opt.patch_size / 4 # 32 / 2 = 16 -> 16 / 2 = 8
 
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader))
     logger = LossLogger()
@@ -402,14 +402,18 @@ for epoch in range(opt.epoch, opt.n_epochs):
             patches['LCalf']['A'] = patches_source['LCalf']
             patches['LCalf']['B'] = patches_target['LCalf']
 
-        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=segm_patch_size)
-        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=segm_patch_size)
-        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=segm_patch_size)
+        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 8)
+        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 8)
+        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size / 8)
 
-        loss_segm = loss_segm_real + loss_segm_fake + loss_segm_same
+        if loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
+            loss_segm = loss_segm_real + loss_segm_fake + loss_segm_same
 
         # Total loss
-        loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
+        if loss_segm is not None:
+            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE + loss_segm
+        else:
+            loss_G = loss_identity_A + loss_identity_B + loss_GAN_A2B + loss_GAN_B2A + loss_cycle_ABA + loss_cycle_BAB + loss_NCE
         loss_G.backward()
 
         optimizer_G.step()
@@ -466,13 +470,13 @@ for epoch in range(opt.epoch, opt.n_epochs):
         # Display the losses
         progress_bar.set_description(
             f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
-            f"Loss_D: {(loss_D_A + loss_D_B).item():.4f} "
-            f"Loss_G: {loss_G.item():.4f} "
-            f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.4f} "
-            f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.4f} "
-            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.4f} "
-            f"Loss_G_NCE: {loss_NCE.item():.4f} "
-            f"Loss_G_segm: {loss_segm.item():.4f}")
+            f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
+            f"Loss_G: {loss_G.item():.2f} "
+            f"Loss_G_identity: {(loss_identity_A + loss_identity_B).item():.2f} "
+            f"Loss_G_GAN: {(loss_GAN_A2B + loss_GAN_B2A).item():.2f} "
+            f"Loss_G_cycle: {(loss_cycle_ABA + loss_cycle_BAB).item():.2f} "
+            f"Loss_G_NCE: {loss_NCE.item():.2f} "
+            f"Loss_G_segm: {loss_segm.item():.2f}")
 
         # Log the losses of each batch
         logger.log({
