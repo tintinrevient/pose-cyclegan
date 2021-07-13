@@ -198,6 +198,65 @@ def calculate_NCE_loss(source, target):
     return loss_NCE
 
 
+def _get_matched_patches(patches_source, patches_target):
+
+    patches = {}
+
+    if 'Head' in patches_source and 'Head' in patches_target:
+        patches['Head'] = {}
+        patches['Head']['A'] = patches_source['Head']
+        patches['Head']['B'] = patches_target['Head']
+
+    if 'Torso' in patches_source and 'Torso' in patches_target:
+        patches['Torso'] = {}
+        patches['Torso']['A'] = patches_source['Torso']
+        patches['Torso']['B'] = patches_target['Torso']
+
+    if 'RUpperArm' in patches_source and 'RUpperArm' in patches_target:
+        patches['RUpperArm'] = {}
+        patches['RUpperArm']['A'] = patches_source['RUpperArm']
+        patches['RUpperArm']['B'] = patches_target['RUpperArm']
+
+    if 'RLowerArm' in patches_source and 'RLowerArm' in patches_target:
+        patches['RLowerArm'] = {}
+        patches['RLowerArm']['A'] = patches_source['RLowerArm']
+        patches['RLowerArm']['B'] = patches_target['RLowerArm']
+
+    if 'LUpperArm' in patches_source and 'LUpperArm' in patches_target:
+        patches['LUpperArm'] = {}
+        patches['LUpperArm']['A'] = patches_source['LUpperArm']
+        patches['LUpperArm']['B'] = patches_target['LUpperArm']
+
+    if 'LLowerArm' in patches_source and 'LLowerArm' in patches_target:
+        patches['LLowerArm'] = {}
+        patches['LLowerArm']['A'] = patches_source['LLowerArm']
+        patches['LLowerArm']['B'] = patches_target['LLowerArm']
+
+    if 'RThigh' in patches_source and 'RThigh' in patches_target:
+        patches['RThigh'] = {}
+        patches['RThigh']['A'] = patches_source['RThigh']
+        patches['RThigh']['B'] = patches_target['RThigh']
+
+    if 'RCalf' in patches_source and 'RCalf' in patches_target:
+        patches['RCalf'] = {}
+        patches['RCalf']['A'] = patches_source['RCalf']
+        patches['RCalf']['B'] = patches_target['RCalf']
+
+    if 'LThigh' in patches_source and 'LThigh' in patches_target:
+        patches['LThigh'] = {}
+        patches['LThigh']['A'] = patches_source['LThigh']
+        patches['LThigh']['B'] = patches_target['LThigh']
+
+    if 'LCalf' in patches_source and 'LCalf' in patches_target:
+        patches['LCalf'] = {}
+        patches['LCalf']['A'] = patches_source['LCalf']
+        patches['LCalf']['B'] = patches_target['LCalf']
+
+    print('patches:', patches)
+
+    return patches
+
+
 def calculate_segment_loss(source, target, patches, patch_size):
 
     loss_segm = None
@@ -220,62 +279,51 @@ def calculate_segment_loss(source, target, patches, patch_size):
         target_patch_small = (np.array(midpoints['B']) / 2).astype(int)
         target_patch_large = (np.array(midpoints['B']) / 4).astype(int)
 
+        # small -> small patch size + large feature size
+        # large -> large patch size + small feature size
         # A - patches from features
-        # 128 x 128 in
+        # 256 x 256 in
         source_segm_in_small = netS_in_small(source_in_features[0][:, :,
                                              int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
                                              int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
-        # 64 x 64 in
-        source_segm_in_large = netS_in_large(source_in_features[1][:, :,
-                                             int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
-                                             int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
+        # 128 x 128 in
+        # source_segm_in_large = netS_in_large(source_in_features[1][:, :,
+        #                                      int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
+        #                                      int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
+        # 256 x 256 out
+        # source_segm_out_small = netS_out_small(source_out_features[1][:, :,
+        #                                        int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
+        #                                        int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
         # 128 x 128 out
-        source_segm_out_small = netS_out_small(source_out_features[1][:, :,
-                                               int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
-                                               int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
-        # 64 x 64 out
         source_segm_out_large = netS_out_large(source_out_features[0][:, :,
                                                int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
                                                int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
 
-        source_loss_in_segm = criterion_segm(source_segm_in_small, source_segm_in_large) * 2.0
-        source_loss_out_segm = criterion_segm(source_segm_out_small, source_segm_out_large) * 2.0
-        source_loss_in_out_segm = criterion_segm(source_segm_in_small, source_segm_out_large) * 2.0
-        source_loss_out_in_segm = criterion_segm(source_segm_out_small, source_segm_in_large) * 2.0
-
-        if source_loss_in_segm is not None and source_loss_out_segm is not None and source_loss_in_out_segm is not None and source_loss_out_in_segm is not None:
-            loss_segm_source = source_loss_in_segm + source_loss_out_segm + source_loss_in_out_segm + source_loss_out_in_segm
-
         # B - patches from features
+        # 256 x 256 in
+        target_segm_in_small = netS_out_small(target_in_features[0][:, :,
+                                              int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
+                                              int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
         # 128 x 128 in
-        target_segm_in_small = netS_in_small(target_in_features[0][:, :,
-                                             int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
-                                             int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
-        # 64 x 64 in
-        target_segm_in_large = netS_in_large(target_in_features[1][:, :,
-                                             int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
-                                             int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
+        # target_segm_in_large = netS_out_large(target_in_features[1][:, :,
+        #                                       int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
+        #                                       int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
+        # 256 x 256 out
+        # target_segm_out_small = netS_in_small(target_out_features[1][:, :,
+        #                                       int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
+        #                                       int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
         # 128 x 128 out
-        target_segm_out_small = netS_out_small(target_out_features[1][:, :,
-                                               int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
-                                               int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
-        # 64 x 64 out
-        target_segm_out_large = netS_out_large(target_out_features[0][:, :,
-                                               int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
-                                               int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
+        target_segm_out_large = netS_in_large(target_out_features[0][:, :,
+                                              int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
+                                              int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
 
-        target_loss_in_segm = criterion_segm(target_segm_in_small, target_segm_in_large) * 2.0
-        target_loss_out_segm = criterion_segm(target_segm_out_small, target_segm_out_large) * 2.0
-        target_loss_in_out_segm = criterion_segm(target_segm_in_small, target_segm_out_large) * 2.0
-        target_loss_out_in_segm = criterion_segm(target_segm_out_small, target_segm_in_large) * 2.0
+        loss_source_in_small_target_out_large = criterion_segm(source_segm_in_small, target_segm_out_large) * 10.0
+        loss_target_in_small_source_out_large = criterion_segm(target_segm_in_small, source_segm_out_large) * 10.0
 
-        if target_loss_in_segm is not None and target_loss_out_segm is not None and target_loss_in_out_segm is not None and target_loss_out_in_segm is not None:
-            loss_segm_target = target_loss_in_segm + target_loss_out_segm + target_loss_in_out_segm + target_loss_out_in_segm
-
-        if loss_segm is None and loss_segm_source is not None and loss_segm_target is not None:
-            loss_segm = loss_segm_source + loss_segm_target
-        elif loss_segm is not None and loss_segm_source is not None and loss_segm_target is not None:
-            loss_segm += loss_segm_source + loss_segm_target
+        if loss_segm is None and loss_source_in_small_target_out_large is not None and loss_target_in_small_source_out_large is not None:
+            loss_segm = loss_source_in_small_target_out_large + loss_target_in_small_source_out_large
+        elif loss_segm is not None and loss_source_in_small_target_out_large is not None and loss_target_in_small_source_out_large is not None:
+            loss_segm += loss_source_in_small_target_out_large + loss_target_in_small_source_out_large
 
     return loss_segm
 ######################################
@@ -355,58 +403,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
                                                       image_shape=shape_B,
                                                       image_size=opt.size, patch_size=opt.patch_size / 2)
 
-        patches = {}
-        if 'Head' in patches_source and 'Head' in patches_target:
-            patches['Head'] = {}
-            patches['Head']['A'] = patches_source['Head']
-            patches['Head']['B'] = patches_target['Head']
-
-        if 'Torso' in patches_source and 'Torso' in patches_target:
-            patches['Torso'] = {}
-            patches['Torso']['A'] = patches_source['Torso']
-            patches['Torso']['B'] = patches_target['Torso']
-
-        if 'RUpperArm' in patches_source and 'RUpperArm' in patches_target:
-            patches['RUpperArm'] = {}
-            patches['RUpperArm']['A'] = patches_source['RUpperArm']
-            patches['RUpperArm']['B'] = patches_target['RUpperArm']
-
-        if 'RLowerArm' in patches_source and 'RLowerArm' in patches_target:
-            patches['RLowerArm'] = {}
-            patches['RLowerArm']['A'] = patches_source['RLowerArm']
-            patches['RLowerArm']['B'] = patches_target['RLowerArm']
-
-        if 'LUpperArm' in patches_source and 'LUpperArm' in patches_target:
-            patches['LUpperArm'] = {}
-            patches['LUpperArm']['A'] = patches_source['LUpperArm']
-            patches['LUpperArm']['B'] = patches_target['LUpperArm']
-
-        if 'LLowerArm' in patches_source and 'LLowerArm' in patches_target:
-            patches['LLowerArm'] = {}
-            patches['LLowerArm']['A'] = patches_source['LLowerArm']
-            patches['LLowerArm']['B'] = patches_target['LLowerArm']
-
-        if 'RThigh' in patches_source and 'RThigh' in patches_target:
-            patches['RThigh'] = {}
-            patches['RThigh']['A'] = patches_source['RThigh']
-            patches['RThigh']['B'] = patches_target['RThigh']
-
-        if 'RCalf' in patches_source and 'RCalf' in patches_target:
-            patches['RCalf'] = {}
-            patches['RCalf']['A'] = patches_source['RCalf']
-            patches['RCalf']['B'] = patches_target['RCalf']
-
-        if 'LThigh' in patches_source and 'LThigh' in patches_target:
-            patches['LThigh'] = {}
-            patches['LThigh']['A'] = patches_source['LThigh']
-            patches['LThigh']['B'] = patches_target['LThigh']
-
-        if 'LCalf' in patches_source and 'LCalf' in patches_target:
-            patches['LCalf'] = {}
-            patches['LCalf']['A'] = patches_source['LCalf']
-            patches['LCalf']['B'] = patches_target['LCalf']
-
-        print('patches:', patches)
+        patches = _get_matched_patches(patches_source, patches_target)
 
         loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 2)
         loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 2)
