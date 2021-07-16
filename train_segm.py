@@ -261,20 +261,20 @@ def calculate_segment_loss(source, target, patches, patch_size):
 
     loss_segm = None
 
+    half_patch_size = patch_size / 2
+
+    half_patch_size_in_layer = half_patch_size / 2 # patch_size = 16 for shallow and deep layers
+    # half_patch_size_in_layer = half_patch_size / 4 # patch_size = 8 for shallow and deep layers
+
     # A - features
     source_in_features = netG_A2B(source, [4, 8], encode_only=True)
     source_out_features = netG_A2B(source, [16, 20], encode_only=True)
 
-    # B
+    # fake A - features
     target_in_features = netG_B2A(target, [4, 8], encode_only=True)
     target_out_features = netG_B2A(target, [16, 20], encode_only=True)
 
     for name, midpoints in patches.items():
-
-        half_patch_size = patch_size / 2
-
-        half_patch_size_small = half_patch_size / 2
-        half_patch_size_large = half_patch_size / 4
 
         source_patch_small = (np.array(midpoints['A']) / 2).astype(int)
         source_patch_large = (np.array(midpoints['A']) / 4).astype(int)
@@ -284,40 +284,26 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # small -> small patch size + large feature size
         # large -> large patch size + small feature size
         # A - patches from features
-        # 256 x 256 in
-        source_segm_in_small = netS_in_small(source_in_features[0][:, :,
-                                             int(source_patch_small[1] - half_patch_size_large):int(source_patch_small[1] + half_patch_size_large),
-                                             int(source_patch_small[0] - half_patch_size_large):int(source_patch_small[0] + half_patch_size_large)])
         # 128 x 128 in
-        # source_segm_in_large = netS_in_large(source_in_features[1][:, :,
-        #                                      int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
-        #                                      int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
-        # 256 x 256 out
-        # source_segm_out_small = netS_out_small(source_out_features[1][:, :,
-        #                                        int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
-        #                                        int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
-        # 128 x 128 out
-        source_segm_out_large = netS_out_large(source_out_features[0][:, :,
-                                               int(source_patch_large[1] - half_patch_size_large):int(source_patch_large[1] + half_patch_size_large),
-                                               int(source_patch_large[0] - half_patch_size_large):int(source_patch_large[0] + half_patch_size_large)])
+        source_segm_in_small = netS_in_small(source_in_features[0][:, :,
+                                             int(source_patch_small[1] - half_patch_size_in_layer):int(source_patch_small[1] + half_patch_size_in_layer),
+                                             int(source_patch_small[0] - half_patch_size_in_layer):int(source_patch_small[0] + half_patch_size_in_layer)])
+
+        # 64 x 64 out
+        target_segm_out_large = netS_out_large(target_out_features[0][:, :,
+                                               int(source_patch_large[1] - half_patch_size_in_layer):int(source_patch_large[1] + half_patch_size_in_layer),
+                                               int(source_patch_large[0] - half_patch_size_in_layer):int(source_patch_large[0] + half_patch_size_in_layer)])
 
         # B - patches from features
-        # 256 x 256 in
-        target_segm_in_small = netS_out_small(target_in_features[0][:, :,
-                                              int(target_patch_small[1] - half_patch_size_large):int(target_patch_small[1] + half_patch_size_large),
-                                              int(target_patch_small[0] - half_patch_size_large):int(target_patch_small[0] + half_patch_size_large)])
         # 128 x 128 in
-        # target_segm_in_large = netS_out_large(target_in_features[1][:, :,
-        #                                       int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
-        #                                       int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
-        # 256 x 256 out
-        # target_segm_out_small = netS_in_small(target_out_features[1][:, :,
-        #                                       int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
-        #                                       int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
-        # 128 x 128 out
-        target_segm_out_large = netS_in_large(target_out_features[0][:, :,
-                                              int(target_patch_large[1] - half_patch_size_large):int(target_patch_large[1] + half_patch_size_large),
-                                              int(target_patch_large[0] - half_patch_size_large):int(target_patch_large[0] + half_patch_size_large)])
+        target_segm_in_small = netS_out_small(target_in_features[0][:, :,
+                                              int(target_patch_small[1] - half_patch_size_in_layer):int(target_patch_small[1] + half_patch_size_in_layer),
+                                              int(target_patch_small[0] - half_patch_size_in_layer):int(target_patch_small[0] + half_patch_size_in_layer)])
+
+        # 64 x 64 out
+        source_segm_out_large = netS_in_large(source_out_features[0][:, :,
+                                              int(target_patch_large[1] - half_patch_size_in_layer):int(target_patch_large[1] + half_patch_size_in_layer),
+                                              int(target_patch_large[0] - half_patch_size_in_layer):int(target_patch_large[0] + half_patch_size_in_layer)])
 
         loss_source_in_small_target_out_large = criterion_segm(source_segm_in_small, target_segm_out_large) * 10.0
         loss_target_in_small_source_out_large = criterion_segm(target_segm_in_small, source_segm_out_large) * 10.0
