@@ -284,23 +284,23 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # small -> small patch size + large feature size
         # large -> large patch size + small feature size
         # A - patches from features
-        # 128 x 128 in
+        # 128 x 128 - in - shallow feature - A - small
         source_segm_in_small = netS_in_small(source_in_features[0][:, :,
                                              int(source_patch_small[1] - half_patch_size_in_layer):int(source_patch_small[1] + half_patch_size_in_layer),
                                              int(source_patch_small[0] - half_patch_size_in_layer):int(source_patch_small[0] + half_patch_size_in_layer)])
 
-        # 64 x 64 out
+        # 64 x 64 - out - deep feature - A - large
         target_segm_out_large = netS_out_large(target_out_features[0][:, :,
                                                int(source_patch_large[1] - half_patch_size_in_layer):int(source_patch_large[1] + half_patch_size_in_layer),
                                                int(source_patch_large[0] - half_patch_size_in_layer):int(source_patch_large[0] + half_patch_size_in_layer)])
 
         # B - patches from features
-        # 128 x 128 in
+        # 128 x 128 - in - shallow feature - fake B - small
         target_segm_in_small = netS_out_small(target_in_features[0][:, :,
                                               int(target_patch_small[1] - half_patch_size_in_layer):int(target_patch_small[1] + half_patch_size_in_layer),
                                               int(target_patch_small[0] - half_patch_size_in_layer):int(target_patch_small[0] + half_patch_size_in_layer)])
 
-        # 64 x 64 out
+        # 64 x 64 - out - deep feature - fake B - large
         source_segm_out_large = netS_in_large(source_out_features[0][:, :,
                                               int(target_patch_large[1] - half_patch_size_in_layer):int(target_patch_large[1] + half_patch_size_in_layer),
                                               int(target_patch_large[0] - half_patch_size_in_layer):int(target_patch_large[0] + half_patch_size_in_layer)])
@@ -393,8 +393,8 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         patches = _get_matched_patches(patches_source, patches_target)
 
-        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size)
-        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size)
+        loss_segm_real = calculate_segment_loss(source=real_A, target=fake_B, patches=patches, patch_size=opt.patch_size)
+        loss_segm_fake = calculate_segment_loss(source=fake_A, target=real_B, patches=patches, patch_size=opt.patch_size)
         loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size)
 
         if loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
