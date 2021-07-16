@@ -271,8 +271,10 @@ def calculate_segment_loss(source, target, patches, patch_size):
 
     for name, midpoints in patches.items():
 
-        patch_size_small = patch_size / 2
-        patch_size_large = patch_size / 4
+        half_patch_size = patch_size / 2
+
+        half_patch_size_small = half_patch_size / 2
+        half_patch_size_large = half_patch_size / 4
 
         source_patch_small = (np.array(midpoints['A']) / 2).astype(int)
         source_patch_large = (np.array(midpoints['A']) / 4).astype(int)
@@ -284,8 +286,8 @@ def calculate_segment_loss(source, target, patches, patch_size):
         # A - patches from features
         # 256 x 256 in
         source_segm_in_small = netS_in_small(source_in_features[0][:, :,
-                                             int(source_patch_small[1] - patch_size_large):int(source_patch_small[1] + patch_size_large),
-                                             int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
+                                             int(source_patch_small[1] - half_patch_size_large):int(source_patch_small[1] + half_patch_size_large),
+                                             int(source_patch_small[0] - half_patch_size_large):int(source_patch_small[0] + half_patch_size_large)])
         # 128 x 128 in
         # source_segm_in_large = netS_in_large(source_in_features[1][:, :,
         #                                      int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
@@ -296,14 +298,14 @@ def calculate_segment_loss(source, target, patches, patch_size):
         #                                        int(source_patch_small[0] - patch_size_large):int(source_patch_small[0] + patch_size_large)])
         # 128 x 128 out
         source_segm_out_large = netS_out_large(source_out_features[0][:, :,
-                                               int(source_patch_large[1] - patch_size_large):int(source_patch_large[1] + patch_size_large),
-                                               int(source_patch_large[0] - patch_size_large):int(source_patch_large[0] + patch_size_large)])
+                                               int(source_patch_large[1] - half_patch_size_large):int(source_patch_large[1] + half_patch_size_large),
+                                               int(source_patch_large[0] - half_patch_size_large):int(source_patch_large[0] + half_patch_size_large)])
 
         # B - patches from features
         # 256 x 256 in
         target_segm_in_small = netS_out_small(target_in_features[0][:, :,
-                                              int(target_patch_small[1] - patch_size_large):int(target_patch_small[1] + patch_size_large),
-                                              int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
+                                              int(target_patch_small[1] - half_patch_size_large):int(target_patch_small[1] + half_patch_size_large),
+                                              int(target_patch_small[0] - half_patch_size_large):int(target_patch_small[0] + half_patch_size_large)])
         # 128 x 128 in
         # target_segm_in_large = netS_out_large(target_in_features[1][:, :,
         #                                       int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
@@ -314,8 +316,8 @@ def calculate_segment_loss(source, target, patches, patch_size):
         #                                       int(target_patch_small[0] - patch_size_large):int(target_patch_small[0] + patch_size_large)])
         # 128 x 128 out
         target_segm_out_large = netS_in_large(target_out_features[0][:, :,
-                                              int(target_patch_large[1] - patch_size_large):int(target_patch_large[1] + patch_size_large),
-                                              int(target_patch_large[0] - patch_size_large):int(target_patch_large[0] + patch_size_large)])
+                                              int(target_patch_large[1] - half_patch_size_large):int(target_patch_large[1] + half_patch_size_large),
+                                              int(target_patch_large[0] - half_patch_size_large):int(target_patch_large[0] + half_patch_size_large)])
 
         loss_source_in_small_target_out_large = criterion_segm(source_segm_in_small, target_segm_out_large) * 10.0
         loss_target_in_small_source_out_large = criterion_segm(target_segm_in_small, source_segm_out_large) * 10.0
@@ -397,17 +399,17 @@ for epoch in range(opt.epoch, opt.n_epochs):
         patches_source = get_segm_patches_from_source(dp_coco=dp_coco,
                                                       image_tensor=real_A[0], image_fpath=path_A[0],
                                                       image_shape=shape_A,
-                                                      image_size=opt.size, patch_size=opt.patch_size / 2)
+                                                      image_size=opt.size, patch_size=opt.patch_size)
 
         patches_target = get_segm_patches_from_target(image_tensor=real_B[0], image_fpath=path_B[0],
                                                       image_shape=shape_B,
-                                                      image_size=opt.size, patch_size=opt.patch_size / 2)
+                                                      image_size=opt.size, patch_size=opt.patch_size)
 
         patches = _get_matched_patches(patches_source, patches_target)
 
-        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size / 2)
-        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size / 2)
-        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size / 2)
+        loss_segm_real = calculate_segment_loss(source=real_A, target=real_B, patches=patches, patch_size=opt.patch_size)
+        loss_segm_fake = calculate_segment_loss(source=fake_A, target=fake_B, patches=patches, patch_size=opt.patch_size)
+        loss_segm_same = calculate_segment_loss(source=same_A, target=same_B, patches=patches, patch_size=opt.patch_size)
 
         if loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
 

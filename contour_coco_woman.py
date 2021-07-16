@@ -41,18 +41,22 @@ COARSE_ID = [
 
 # BGRA -> alpha channel: 0 = transparent, 255 = non-transparent
 COARSE_TO_COLOR = {
-    'Background': [255, 255, 255],
-    'Torso': [191, 78, 22],
-    'RThigh': [167, 181, 44],
-    'LThigh': [141, 187, 91],
-    'RCalf': [114, 191, 147],
-    'LCalf': [96, 188, 192],
-    'LUpperArm': [87, 207, 112],
-    'RUpperArm': [55, 218, 162],
-    'LLowerArm': [25, 226, 216],
-    'RLowerArm': [37, 231, 253],
-    'Head': [14, 251, 249]
+    'Background': [255, 255, 255, 255],
+    'Torso': [191, 78, 22, 255],
+    'RThigh': [167, 181, 44, 255],
+    'LThigh': [141, 187, 91, 255],
+    'RCalf': [114, 191, 147, 255],
+    'LCalf': [96, 188, 192, 255],
+    'LUpperArm': [87, 207, 112, 255],
+    'RUpperArm': [55, 218, 162, 255],
+    'LLowerArm': [25, 226, 216, 255],
+    'RLowerArm': [37, 231, 253, 255],
+    'Head': [14, 251, 249, 255]
 }
+
+for key, value in list(COARSE_TO_COLOR.items()):
+    COARSE_TO_COLOR[key] = np.array(value) / 256
+
 
 # DensePose JOINT_ID
 JOINT_ID = [
@@ -308,7 +312,7 @@ def _rotate_image(image, center, angle):
 
 
 def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
-
+    print(image.shape)
     patch_img_list = []
 
     # scaler
@@ -586,8 +590,10 @@ def _get_midpoints(keypoints):
 
 def _is_inside(midpoint, patch_size, image_size):
 
-    point_top_left = np.array(midpoint[0:2]) - np.array([patch_size, patch_size])
-    point_bottom_right = np.array(midpoint[0:2]) + np.array([patch_size, patch_size])
+    half_patch_size = patch_size / 2
+
+    point_top_left = np.array(midpoint[0:2]) - np.array([half_patch_size, half_patch_size])
+    point_bottom_right = np.array(midpoint[0:2]) + np.array([half_patch_size, half_patch_size])
 
     if (point_top_left > 0).all() and (point_top_left < image_size).all() and (point_bottom_right > 0).all() and (point_bottom_right < image_size).all():
         return True
@@ -654,7 +660,11 @@ def _draw_rect(image, midpoint, patch_size):
 def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size, patch_size):
 
     # for debug use only!
-    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    # grayscale
+    image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+    image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
+    # color
     # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
 
     # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
@@ -694,8 +704,8 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     midpoints = _get_midpoints(keypoints)
 
     # debug - midpoints
-    # for key, value in midpoints.items():
-    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 255, 0), -1)
+    for key, value in midpoints.items():
+        cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 3: load the data of contour
     df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
@@ -709,13 +719,13 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
 
     # debug - patches
-    # for midpoint in patches.items():
-    #     _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+    for midpoint in patches.items():
+        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
 
     # debug - show the whole image
-    # cv2.imshow('Contour of {}'.format(image_id), image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('Contour of {}'.format(image_id), image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     return patches
 
@@ -723,7 +733,7 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
 if __name__ == '__main__':
 
     # settings
-    thickness = 4
+    thickness = 2
 
     # dense_pose annotation
     dp_coco = COCO(os.path.join(coco_folder, 'annotations', 'densepose_train2014.json'))
@@ -741,8 +751,8 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 512
-    patch_size = 32 / 2
+    image_size = 256
+    patch_size = 32
 
     transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
                     transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop

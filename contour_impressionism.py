@@ -49,6 +49,9 @@ COARSE_TO_COLOR = {
     'Head': [14, 251, 249, 255]
 }
 
+for key, value in list(COARSE_TO_COLOR.items()):
+    COARSE_TO_COLOR[key] = np.array(value) / 256
+
 
 def _euclidian(point1, point2):
 
@@ -448,7 +451,11 @@ def _draw_rect(image, midpoint, patch_size):
 def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_size):
 
     # for debug use only!
-    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    # grayscale
+    image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+    image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
+    # color
     # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
 
     painting_number = image_fpath[image_fpath.rfind('/') + 1:image_fpath.rfind('.')]
@@ -478,8 +485,8 @@ def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_s
     midpoints = _get_midpoints(image_fpath, keypoints)
 
     # debug - midpoints
-    # for key, value in midpoints.items():
-    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 255, 0), -1)
+    for key, value in midpoints.items():
+        cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 3: load the data of norm_segm
     df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
@@ -493,13 +500,13 @@ def get_segm_patches(image_tensor, image_fpath, image_shape, image_size, patch_s
     patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
 
     # debug - patches
-    # for midpoint in patches.items():
-    #     _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+    for midpoint in patches.items():
+        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
 
     # debug - show the whole image
-    # cv2.imshow('Contour of {}'.format(painting_number), image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('Contour of {}'.format(painting_number), image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     return patches
 
@@ -510,7 +517,7 @@ if __name__ == '__main__':
     # calc_scaler()
 
     # step 2: visualize contour on image
-    thickness = 3
+    thickness = 2
 
     # option 1 - visualize the contour
     # for a single image
@@ -526,8 +533,8 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 512
-    patch_size = 32 / 2
+    image_size = 256
+    patch_size = 32
 
     transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
                     transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
