@@ -660,10 +660,10 @@ def _draw_rect(image, midpoint, patch_size):
 def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size, patch_size):
 
     # for debug use only!
-    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
     # grayscale
-    image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
-    image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
+    # image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+    # image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
     # color
     # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
 
@@ -704,8 +704,8 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     midpoints = _get_midpoints(keypoints)
 
     # debug - midpoints
-    for key, value in midpoints.items():
-        cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
+    # for key, value in midpoints.items():
+    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 3: load the data of contour
     df_contour = pd.read_csv(fname_contour, index_col=0).astype('float32')
@@ -719,13 +719,13 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     patches = _get_patches(midpoints, patch_size=patch_size, image_size=image_size, contour_dict=contour_dict)
 
     # debug - patches
-    for midpoint in patches.items():
-        _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
+    # for midpoint in patches.items():
+    #     _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
 
     # debug - show the whole image
-    cv2.imshow('Contour of {}'.format(image_id), image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('Contour of {}'.format(image_id), image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     return patches
 
