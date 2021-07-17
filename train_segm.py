@@ -382,11 +382,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
         patches_A = get_segm_patches_from_source(dp_coco=dp_coco,
                                                  image_tensor=real_A[0], image_fpath=path_A[0],
                                                  image_shape=shape_A,
-                                                 image_size=opt.size, patch_size=opt.patch_size)
+                                                 image_size=opt.size, patch_size=opt.patch_size * 2)
 
         patches_B = get_segm_patches_from_target(image_tensor=real_B[0], image_fpath=path_B[0],
                                                  image_shape=shape_B,
-                                                 image_size=opt.size, patch_size=opt.patch_size)
+                                                 image_size=opt.size, patch_size=opt.patch_size * 2)
 
         loss_segm_real = calculate_segment_loss(source=real_A, target=fake_B, patches=patches_A, patch_size=opt.patch_size)
         loss_segm_fake = calculate_segment_loss(source=fake_A, target=real_B, patches=patches_B, patch_size=opt.patch_size)
