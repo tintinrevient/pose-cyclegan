@@ -262,7 +262,6 @@ def calculate_segment_loss(source, target, patches, patch_size):
     loss_segm = None
 
     half_patch_size = patch_size / 2
-
     half_patch_size_in_layer = half_patch_size / 2 # patch_size = 16 for shallow and deep layers
     # half_patch_size_in_layer = half_patch_size / 4 # patch_size = 8 for shallow and deep layers
 
