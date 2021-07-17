@@ -462,7 +462,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
         ####################################
 
         # Display the losses
-        if loss_segm is not None and loss_segm_real is not None and loss_segm_fake is not None and loss_segm_same is not None:
+        if loss_segm is not None and loss_segm_real is not None and loss_segm_fake is not None:
             progress_bar.set_description(
                 f"[{epoch}/{opt.n_epochs - 1}][{i}/{len(dataloader) - 1}] "
                 f"Loss_D: {(loss_D_A + loss_D_B).item():.2f} "
@@ -493,8 +493,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
                 'Loss_G_NCE_B': loss_NCE_B.item(),
                 'Loss_G_segm': loss_segm.item(),
                 'Loss_G_segm_real': loss_segm_real.item(),
-                'Loss_G_segm_fake': loss_segm_fake.item(),
-                'Loss_G_segm_same': loss_segm_same.item()
+                'Loss_G_segm_fake': loss_segm_fake.item()
             })
         else:
             progress_bar.set_description(
