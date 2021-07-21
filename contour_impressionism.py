@@ -189,56 +189,106 @@ def _get_rotated_angles(keypoints, midpoints):
 
     # head
     if 'Neck' in keypoints and 'Head' in midpoints:
-        reference_point = np.array(keypoints['Neck']) + np.array((0, -100, 0))
+
+        if len(keypoints['Neck']) == 2:
+            reference_point = np.array(keypoints['Neck']) + np.array((0, -100))
+        elif len(keypoints['Neck']) == 3:
+            reference_point = np.array(keypoints['Neck']) + np.array((0, -100, 0))
+
         rad, deg = _calc_angle(point1=midpoints['Head'], center=keypoints['Neck'], point2=reference_point)
         # rotate back to original in reverse direction
         rotated_angles['Head'] = -deg
 
     # torso
     if 'MidHip' in keypoints and 'Neck' in keypoints:
-        reference_point = np.array(keypoints['MidHip']) + np.array((0, -100, 0))
+
+        if len(keypoints['MidHip']) == 2:
+            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100))
+        elif len(keypoints['MidHip']) == 3:
+            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['Neck'], center=keypoints['MidHip'], point2=reference_point)
         rotated_angles['Torso'] = -deg
 
     # upper limbs
     if 'RShoulder' in keypoints and 'RElbow' in keypoints:
-        reference_point = np.array(keypoints['RShoulder']) + np.array((-100, 0, 0))
+
+        if len(keypoints['RShoulder']) == 2:
+            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100))
+        elif len(keypoints['RShoulder']) == 3:
+            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['RElbow'], center=keypoints['RShoulder'], point2=reference_point)
         rotated_angles['RUpperArm'] = -deg
 
     if 'RElbow' in keypoints and 'RWrist' in keypoints:
-        reference_point = np.array(keypoints['RElbow']) + np.array((-100, 0, 0))
+
+        if len(keypoints['RElbow']) == 2:
+            reference_point = np.array(keypoints['RElbow']) + np.array((-100, 0))
+        elif len(keypoints['RElbow']) == 3:
+            reference_point = np.array(keypoints['RElbow']) + np.array((-100, 0, 0))
+
         rad, deg = _calc_angle(point1=keypoints['RWrist'], center=keypoints['RElbow'], point2=reference_point)
         rotated_angles['RLowerArm'] = -deg
 
     if 'LShoulder' in keypoints and 'LElbow' in keypoints:
-        reference_point = np.array(keypoints['LShoulder']) + np.array((100, 0, 0))
+
+        if len(keypoints['LShoulder']) == 2:
+            reference_point = np.array(keypoints['LShoulder']) + np.array((100, 0))
+        elif keypoints['LShoulder'] == 3:
+            reference_point = np.array(keypoints['LShoulder']) + np.array((100, 0, 0))
+
         rad, deg = _calc_angle(point1=keypoints['LElbow'], center=keypoints['LShoulder'], point2=reference_point)
         rotated_angles['LUpperArm'] = -deg
 
     if 'LElbow' in keypoints and 'LWrist' in keypoints:
-        reference_point = np.array(keypoints['LElbow']) + np.array((100, 0, 0))
+
+        if len(keypoints['LElbow']) == 2:
+            reference_point = np.array(keypoints['LElbow']) + np.array((100, 0))
+        elif keypoints['LElbow'] == 3:
+            reference_point = np.array(keypoints['LElbow']) + np.array((100, 0, 0))
+
         rad, deg = _calc_angle(point1=keypoints['LWrist'], center=keypoints['LElbow'], point2=reference_point)
         rotated_angles['LLowerArm'] = -deg
 
     # lower limbs
     if 'RHip' in keypoints and 'RKnee' in keypoints:
-        reference_point = np.array(keypoints['RHip']) + np.array((0, 100, 0))
+
+        if len(keypoints['RHip']) == 2:
+            reference_point = np.array(keypoints['RHip']) + np.array((0, 100))
+        elif keypoints['RHip'] == 3:
+            reference_point = np.array(keypoints['RHip']) + np.array((0, 100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['RKnee'], center=keypoints['RHip'], point2=reference_point)
         rotated_angles['RThigh'] = -deg
 
     if 'RKnee' in keypoints and 'RAnkle' in keypoints:
-        reference_point = np.array(keypoints['RKnee']) + np.array((0, 100, 0))
+
+        if len(keypoints['RKnee']) == 2:
+            reference_point = np.array(keypoints['RKnee']) + np.array((0, 100))
+        elif keypoints['RKnee'] == 3:
+            reference_point = np.array(keypoints['RKnee']) + np.array((0, 100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['RAnkle'], center=keypoints['RKnee'], point2=reference_point)
         rotated_angles['RCalf'] = -deg
 
     if 'LHip' in keypoints and 'LKnee' in keypoints:
-        reference_point = np.array(keypoints['LHip']) + np.array((0, 100, 0))
+
+        if len(keypoints['LHip']) == 2:
+            reference_point = np.array(keypoints['LHip']) + np.array((0, 100))
+        elif keypoints['LHip'] == 3:
+            reference_point = np.array(keypoints['LHip']) + np.array((0, 100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['LKnee'], center=keypoints['LHip'], point2=reference_point)
         rotated_angles['LThigh'] = -deg
 
     if 'LKnee' in keypoints and 'LAnkle' in keypoints:
-        reference_point = np.array(keypoints['LKnee']) + np.array((0, 100, 0))
+
+        if len(keypoints['LKnee']) == 2:
+            reference_point = np.array(keypoints['LKnee']) + np.array((0, 100))
+        elif keypoints['LKnee'] == 3:
+            reference_point = np.array(keypoints['LKnee']) + np.array((0, 100, 0))
+
         rad, deg = _calc_angle(point1=keypoints['LAnkle'], center=keypoints['LKnee'], point2=reference_point)
         rotated_angles['LCalf'] = -deg
 
@@ -257,7 +307,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['Head'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Head'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Head'] * 256, thickness=thickness)
 
     # torso
     if 'Torso' in midpoints and 'Torso' in rotated_angles:
@@ -266,7 +316,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['Torso'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Torso'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Torso'] * 256, thickness=thickness)
 
     # upper limbs
     if 'RUpperArm' in midpoints and 'RUpperArm' in rotated_angles:
@@ -275,7 +325,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RUpperArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RUpperArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RUpperArm'] * 256, thickness=thickness)
 
     if 'RLowerArm' in midpoints and 'RLowerArm' in rotated_angles:
         rect = ((midpoints['RLowerArm'][0], midpoints['RLowerArm'][1]),
@@ -283,7 +333,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RLowerArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RLowerArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RLowerArm'] * 256, thickness=thickness)
 
     if 'LUpperArm' in midpoints and 'LUpperArm' in rotated_angles:
         rect = ((midpoints['LUpperArm'][0], midpoints['LUpperArm'][1]),
@@ -291,7 +341,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LUpperArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LUpperArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LUpperArm'] * 256, thickness=thickness)
 
     if 'LLowerArm' in midpoints and 'LLowerArm' in rotated_angles:
         rect = ((midpoints['LLowerArm'][0], midpoints['LLowerArm'][1]),
@@ -299,7 +349,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LLowerArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LLowerArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LLowerArm'] * 256, thickness=thickness)
 
     # lower limbs
     if 'RThigh' in midpoints and 'RThigh' in rotated_angles:
@@ -308,7 +358,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RThigh'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RThigh'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RThigh'] * 256, thickness=thickness)
 
     if 'RCalf' in midpoints and 'RCalf' in rotated_angles:
         rect = ((midpoints['RCalf'][0], midpoints['RCalf'][1]),
@@ -316,7 +366,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RCalf'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RCalf'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RCalf'] * 256, thickness=thickness)
 
     if 'LThigh' in midpoints and 'LThigh' in rotated_angles:
         rect = ((midpoints['LThigh'][0], midpoints['LThigh'][1]),
@@ -324,7 +374,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LThigh'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LThigh'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LThigh'] * 256, thickness=thickness)
 
     if 'LCalf' in midpoints and 'LCalf' in rotated_angles:
         rect = ((midpoints['LCalf'][0], midpoints['LCalf'][1]),
@@ -332,7 +382,7 @@ def _draw_norm_segm(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LCalf'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LCalf'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LCalf'] * 256, thickness=thickness)
 
 
 def visualize(infile, category):
@@ -364,6 +414,11 @@ def visualize(infile, category):
     im_gray = np.tile(im_gray[:, :, np.newaxis], [1, 1, 3])
     # draw norm_segm
     _draw_norm_segm(im_gray, midpoints, rotated_angles, contour_dict)
+
+    # debug
+    for key, value in keypoints.items():
+        print(key, value[0:2])
+        cv2.circle(im_gray, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # show the final image
     cv2.imshow('Contour of {}'.format(painting_number), im_gray)
@@ -521,7 +576,8 @@ if __name__ == '__main__':
 
     # option 1 - visualize the contour
     # for a single image
-    # visualize(infile='datasets/surf2nude/train/C/17245.jpg', category='impressionism')
+    image_id = 78145
+    visualize(infile='datasets/surf2nude/train/C/{}.jpg'.format(image_id), category='impressionism')
 
     # for multiple images
     # for image_idx, infile in enumerate(glob.glob('datasets/surf2nude/train/C/*.jpg')):
@@ -533,30 +589,30 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 256
-    patch_size = 32
-
-    transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
-                    transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
-                    transforms.ToTensor() ]
-
-    dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
-                                         transforms_=transforms_, unaligned=True),
-                            batch_size=1, shuffle=True, num_workers=8)
-
-    input_A = torch.Tensor(1, 3, image_size, image_size)
-    input_B = torch.Tensor(1, 3, image_size, image_size)
-
-    for i, batch in enumerate(dataloader):
-        # A
-        real_A = Variable(input_A.copy_(batch['A']))[0]
-        path_A = batch['path_A'][0]
-        shape_A = batch['shape_A']
-
-        # B
-        real_B = Variable(input_B.copy_(batch['B']))[0]
-        path_B = batch['path_B'][0]
-        shape_B = batch['shape_B']
-
-        patches = get_segm_patches(image_tensor=real_B, image_fpath=path_B, image_shape=shape_B,
-                                   image_size=image_size, patch_size=patch_size)
+    # image_size = 256
+    # patch_size = 32
+    #
+    # transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
+    #                 transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+    #                 transforms.ToTensor() ]
+    #
+    # dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
+    #                                      transforms_=transforms_, unaligned=True),
+    #                         batch_size=1, shuffle=True, num_workers=8)
+    #
+    # input_A = torch.Tensor(1, 3, image_size, image_size)
+    # input_B = torch.Tensor(1, 3, image_size, image_size)
+    #
+    # for i, batch in enumerate(dataloader):
+    #     # A
+    #     real_A = Variable(input_A.copy_(batch['A']))[0]
+    #     path_A = batch['path_A'][0]
+    #     shape_A = batch['shape_A']
+    #
+    #     # B
+    #     real_B = Variable(input_B.copy_(batch['B']))[0]
+    #     path_B = batch['path_B'][0]
+    #     shape_B = batch['shape_B']
+    #
+    #     patches = get_segm_patches(image_tensor=real_B, image_fpath=path_B, image_shape=shape_B,
+    #                                image_size=image_size, patch_size=patch_size)

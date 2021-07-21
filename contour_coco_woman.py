@@ -325,7 +325,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['Head'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Head'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Head'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['Head'][0:2]), rotated_angles['Head'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -338,7 +338,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['Torso'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Torso'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['Torso'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['Torso'][0:2]), rotated_angles['Torso'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -351,7 +351,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RUpperArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RUpperArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RUpperArm'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['RUpperArm'][0:2]), rotated_angles['RUpperArm'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -363,7 +363,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RLowerArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RLowerArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RLowerArm'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['RLowerArm'][0:2]), rotated_angles['RLowerArm'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -375,7 +375,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LUpperArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LUpperArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LUpperArm'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['LUpperArm'][0:2]), rotated_angles['LUpperArm'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -387,7 +387,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LLowerArm'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LLowerArm'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LLowerArm'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['LLowerArm'][0:2]), rotated_angles['LLowerArm'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -400,7 +400,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RThigh'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RThigh'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RThigh'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['RThigh'][0:2]), rotated_angles['RThigh'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -412,7 +412,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['RCalf'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RCalf'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['RCalf'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['RCalf'][0:2]), rotated_angles['RCalf'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -424,7 +424,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LThigh'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LThigh'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LThigh'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['LThigh'][0:2]), rotated_angles['LThigh'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -436,7 +436,7 @@ def _get_patch_img_list(image, midpoints, rotated_angles, dict_norm_segm):
                 rotated_angles['LCalf'])
         box = cv2.boxPoints(rect)  # cv2.boxPoints(rect) for OpenCV 3.x
         box = np.int0(box)
-        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LCalf'], thickness=thickness)
+        cv2.drawContours(image, [box], 0, color=COARSE_TO_COLOR['LCalf'] * 256, thickness=thickness)
         # rotated_image = _rotate_image(image, tuple(midpoints['LCalf'][0:2]), rotated_angles['LCalf'])
         # x1, y1 = np.min(box, axis=0)
         # x2, y2 = np.max(box, axis=0)
@@ -491,6 +491,11 @@ def visualize(image_id, category):
     for key, value in list(keypoints_dict.items()):
         if np.sum(value) < 1: # key: [0, 0, 0]
             keypoints_dict.pop(key, None)
+
+    # debug
+    for key, value in keypoints_dict.items():
+        print(key, value[0:2])
+        cv2.circle(img, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 2: get all the midpoints
     midpoints_dict = _get_dict_of_midpoints(segm_xy_dict, keypoints_dict)
@@ -660,12 +665,12 @@ def _draw_rect(image, midpoint, patch_size):
 def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size, patch_size):
 
     # for debug use only!
-    # image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
+    image_array = np.array(image_tensor.permute(1, 2, 0))  # (C, H, W) -> (H, W, C)
     # grayscale
     # image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
     # image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
     # color
-    # image = image_array[:, :, ::-1].copy()  # RGB -> BGR
+    image = image_array[:, :, ::-1].copy()  # RGB -> BGR
 
     # plt.imshow(image_tensor.permute(1, 2, 0)) # (C, H, W) -> (H, W, C)
     # plt.show()
@@ -697,8 +702,8 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     keypoints = _get_keypoints(keypoints, xy_scaler)
 
     # debug - keypoints
-    # for key, value in keypoints.items():
-    #     cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
+    for key, value in keypoints.items():
+        cv2.circle(image, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 2: get all the midpoints
     midpoints = _get_midpoints(keypoints)
@@ -723,9 +728,9 @@ def get_segm_patches(dp_coco, image_tensor, image_fpath, image_shape, image_size
     #     _draw_rect(image, midpoint=midpoint, patch_size=patch_size)
 
     # debug - show the whole image
-    # cv2.imshow('Contour of {}'.format(image_id), image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('Contour of {}'.format(image_id), image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     return patches
 
@@ -740,8 +745,8 @@ if __name__ == '__main__':
 
     # option 1 - visualize the contour
     # for a single image
-    # image_id = 456345
-    # visualize(image_id=image_id, category='coco')
+    image_id = 83964
+    visualize(image_id=image_id, category='coco')
 
     # for multiple images
     # for image_idx, image_infile in enumerate(glob.glob('datasets/surf2nude/train/A/*.jpg')):
@@ -751,31 +756,31 @@ if __name__ == '__main__':
 
     # option 2 - use the contour for the patch of segments
     # global settings
-    image_size = 256
-    patch_size = 32
-
-    transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
-                    transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
-                    transforms.ToTensor() ]
-
-    dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
-                            transforms_=transforms_, unaligned=True),
-                            batch_size=1, shuffle=True, num_workers=8)
-
-    input_A = torch.Tensor(1, 3, image_size, image_size)
-    input_B = torch.Tensor(1, 3, image_size, image_size)
-
-    for i, batch in enumerate(dataloader):
-        # A
-        real_A = Variable(input_A.copy_(batch['A']))[0]
-        path_A = batch['path_A'][0]
-        shape_A = batch['shape_A']
-
-        # B
-        real_B = Variable(input_B.copy_(batch['B']))[0]
-        path_B = batch['path_B'][0]
-        shape_B = batch['shape_B']
-
-        patches = get_segm_patches(dp_coco=dp_coco,
-                                   image_tensor=real_A, image_fpath=path_A, image_shape=shape_A,
-                                   image_size=image_size, patch_size=patch_size)
+    # image_size = 256
+    # patch_size = 32
+    #
+    # transforms_ = [ transforms.Resize(int(image_size), Image.BICUBIC),
+    #                 transforms.CenterCrop(image_size),  # change from RandomCrop to CenterCrop
+    #                 transforms.ToTensor() ]
+    #
+    # dataloader = DataLoader(ImageDataset(os.path.join('datasets', 'surf2nude'),
+    #                         transforms_=transforms_, unaligned=True),
+    #                         batch_size=1, shuffle=True, num_workers=8)
+    #
+    # input_A = torch.Tensor(1, 3, image_size, image_size)
+    # input_B = torch.Tensor(1, 3, image_size, image_size)
+    #
+    # for i, batch in enumerate(dataloader):
+    #     # A
+    #     real_A = Variable(input_A.copy_(batch['A']))[0]
+    #     path_A = batch['path_A'][0]
+    #     shape_A = batch['shape_A']
+    #
+    #     # B
+    #     real_B = Variable(input_B.copy_(batch['B']))[0]
+    #     path_B = batch['path_B'][0]
+    #     shape_B = batch['shape_B']
+    #
+    #     patches = get_segm_patches(dp_coco=dp_coco,
+    #                                image_tensor=real_A, image_fpath=path_A, image_shape=shape_A,
+    #                                image_size=image_size, patch_size=patch_size)
