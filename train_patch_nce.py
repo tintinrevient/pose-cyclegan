@@ -183,6 +183,9 @@ for epoch in range(opt.epoch, opt.n_epochs):
         real_A = Variable(input_A.copy_(batch['A']))
         real_B = Variable(input_B.copy_(batch['B']))
 
+        if real_A.shape[1] != 3 or real_B.shape[1] != 3:
+            continue
+
         ###### Generators A2B and B2A ######
         optimizer_G.zero_grad()
         optimizer_MLP_1.zero_grad()
