@@ -214,9 +214,9 @@ def _get_rotated_angles(keypoints, midpoints):
     if 'RShoulder' in keypoints and 'RElbow' in keypoints:
 
         if len(keypoints['RShoulder']) == 2:
-            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100))
+            reference_point = np.array(keypoints['RShoulder']) + np.array((-100, 0))
         elif len(keypoints['RShoulder']) == 3:
-            reference_point = np.array(keypoints['MidHip']) + np.array((0, -100, 0))
+            reference_point = np.array(keypoints['RShoulderv']) + np.array((-100, 0, 0))
 
         rad, deg = _calc_angle(point1=keypoints['RElbow'], center=keypoints['RShoulder'], point2=reference_point)
         rotated_angles['RUpperArm'] = -deg
@@ -415,10 +415,15 @@ def visualize(infile, category):
     # draw norm_segm
     _draw_norm_segm(im_gray, midpoints, rotated_angles, contour_dict)
 
-    # debug
+    # debug - keypoints
     for key, value in keypoints.items():
-        print(key, value[0:2])
+        print('Keypoint - {}'.format(key), value[0:2])
         cv2.circle(im_gray, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
+
+    # debug - midpoints
+    for key, value in midpoints.items():
+        print('Midpoint - {}'.format(key), value[0:2])
+        cv2.circle(im_gray, tuple(value[0:2].astype(int)), 3, (0, 255, 0), -1)
 
     # show the final image
     cv2.imshow('Contour of {}'.format(painting_number), im_gray)
