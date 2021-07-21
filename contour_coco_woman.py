@@ -492,13 +492,18 @@ def visualize(image_id, category):
         if np.sum(value) < 1: # key: [0, 0, 0]
             keypoints_dict.pop(key, None)
 
-    # debug
+    # debug - keypoints
     for key, value in keypoints_dict.items():
-        print(key, value[0:2])
+        print('Keypoint - {}'.format(key), value[0:2])
         cv2.circle(img, tuple(value[0:2].astype(int)), 3, (255, 0, 255), -1)
 
     # step 2: get all the midpoints
     midpoints_dict = _get_dict_of_midpoints(segm_xy_dict, keypoints_dict)
+
+    # debug - midpoints
+    for key, value in midpoints_dict.items():
+        print('Midpoint - {}'.format(key), value[0:2])
+        cv2.circle(img, tuple(value[0:2].astype(int)), 3, (0, 255, 0), -1)
 
     # step 3: get the rotation angles
     rotated_angles = _get_rotated_angles(keypoints_dict, midpoints_dict)
