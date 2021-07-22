@@ -185,6 +185,8 @@ def _calc_angle(point1, center, point2):
 
 def _get_rotated_angles(keypoints, midpoints):
 
+    print(keypoints)
+
     rotated_angles = {}
 
     # head
@@ -216,7 +218,7 @@ def _get_rotated_angles(keypoints, midpoints):
         if len(keypoints['RShoulder']) == 2:
             reference_point = np.array(keypoints['RShoulder']) + np.array((-100, 0))
         elif len(keypoints['RShoulder']) == 3:
-            reference_point = np.array(keypoints['RShoulderv']) + np.array((-100, 0, 0))
+            reference_point = np.array(keypoints['RShoulder']) + np.array((-100, 0, 0))
 
         rad, deg = _calc_angle(point1=keypoints['RElbow'], center=keypoints['RShoulder'], point2=reference_point)
         rotated_angles['RUpperArm'] = -deg
@@ -235,7 +237,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['LShoulder']) == 2:
             reference_point = np.array(keypoints['LShoulder']) + np.array((100, 0))
-        elif keypoints['LShoulder'] == 3:
+        elif len(keypoints['LShoulder']) == 3:
             reference_point = np.array(keypoints['LShoulder']) + np.array((100, 0, 0))
 
         rad, deg = _calc_angle(point1=keypoints['LElbow'], center=keypoints['LShoulder'], point2=reference_point)
@@ -245,7 +247,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['LElbow']) == 2:
             reference_point = np.array(keypoints['LElbow']) + np.array((100, 0))
-        elif keypoints['LElbow'] == 3:
+        elif len(keypoints['LElbow']) == 3:
             reference_point = np.array(keypoints['LElbow']) + np.array((100, 0, 0))
 
         rad, deg = _calc_angle(point1=keypoints['LWrist'], center=keypoints['LElbow'], point2=reference_point)
@@ -256,7 +258,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['RHip']) == 2:
             reference_point = np.array(keypoints['RHip']) + np.array((0, 100))
-        elif keypoints['RHip'] == 3:
+        elif len(keypoints['RHip']) == 3:
             reference_point = np.array(keypoints['RHip']) + np.array((0, 100, 0))
 
         rad, deg = _calc_angle(point1=keypoints['RKnee'], center=keypoints['RHip'], point2=reference_point)
@@ -266,7 +268,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['RKnee']) == 2:
             reference_point = np.array(keypoints['RKnee']) + np.array((0, 100))
-        elif keypoints['RKnee'] == 3:
+        elif len(keypoints['RKnee']) == 3:
             reference_point = np.array(keypoints['RKnee']) + np.array((0, 100, 0))
 
         rad, deg = _calc_angle(point1=keypoints['RAnkle'], center=keypoints['RKnee'], point2=reference_point)
@@ -276,7 +278,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['LHip']) == 2:
             reference_point = np.array(keypoints['LHip']) + np.array((0, 100))
-        elif keypoints['LHip'] == 3:
+        elif len(keypoints['LHip']) == 3:
             reference_point = np.array(keypoints['LHip']) + np.array((0, 100, 0))
 
         rad, deg = _calc_angle(point1=keypoints['LKnee'], center=keypoints['LHip'], point2=reference_point)
@@ -286,7 +288,7 @@ def _get_rotated_angles(keypoints, midpoints):
 
         if len(keypoints['LKnee']) == 2:
             reference_point = np.array(keypoints['LKnee']) + np.array((0, 100))
-        elif keypoints['LKnee'] == 3:
+        elif len(keypoints['LKnee']) == 3:
             reference_point = np.array(keypoints['LKnee']) + np.array((0, 100, 0))
 
         rad, deg = _calc_angle(point1=keypoints['LAnkle'], center=keypoints['LKnee'], point2=reference_point)
@@ -581,7 +583,8 @@ if __name__ == '__main__':
 
     # option 1 - visualize the contour
     # for a single image
-    image_id = 78145
+    image_id = 78145 # Modigliani
+    # image_id = 83964 # COCO surf woman - only for a test
     visualize(infile='datasets/surf2nude/train/C/{}.jpg'.format(image_id), category='impressionism')
 
     # for multiple images
