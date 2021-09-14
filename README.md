@@ -5,27 +5,27 @@
 ### Vanilla Generator and Discriminator
 
 <p float="left">
-    <img src="pix/vanilla-generator.png" width="800" />
-    <img src="pix/vanilla-discriminator.png" width="800" />
+    <img src="pix/vanilla-generator.png" width="700" />
+    <img src="pix/vanilla-discriminator.png" width="700" />
 </p>
 
 ### Discriminator with PatchGAN
 
 <p float="left">
-    <img src="pix/discriminator-patchgan.png" width="800" />
+    <img src="pix/discriminator-patchgan.png" width="700" />
 </p>
 
 ### Generator with MLP (Contrastive Learning)
 
 <p float="left">
-    <img src="pix/generator-mlp.png" width="800" />
+    <img src="pix/generator-mlp.png" width="700" />
 </p>
 
 ### Segment Loss
 
 <p float="left">
-    <img src="pix/segment-decoder.png" width="800" />
-    <img src="pix/segment-loss.png" width="800" />
+    <img src="pix/segment-decoder.png" width="700" />
+    <img src="pix/segment-loss.png" width="700" />
 </p>
 
 ## Dataset
