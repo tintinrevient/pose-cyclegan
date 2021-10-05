@@ -4,37 +4,37 @@
 
 ### Vanilla Generator and Discriminator
 
+The code - [Vanilla CycleGAN](https://github.com/tintinrevient/pose-cyclegan/blob/main/train.py).
+
 <p float="left">
     <img src="pix/vanilla-generator.png" width="700" />
     <img src="pix/vanilla-discriminator.png" width="700" />
 </p>
 
-The code - [Vanilla CycleGAN](https://github.com/tintinrevient/pose-cyclegan/blob/main/train.py).
-
 ### Discriminator with PatchGAN
+
+The code - [CycleGAN with PatchGAN](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_patch_gan.py)
 
 <p float="left">
     <img src="pix/discriminator-patchgan.png" width="700" />
 </p>
 
-The code - [CycleGAN with PatchGAN](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_patch_gan.py)
-
 ### Generator with MLP (Contrastive Learning)
+
+The code - [CycleGAN with PatchNCE loss](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_patch_nce.py)
 
 <p float="left">
     <img src="pix/generator-mlp.png" width="700" />
 </p>
 
-The code - [CycleGAN with PatchNCE loss](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_patch_nce.py)
-
 ### Segment Loss
+
+The code - [CycleGAN with segment loss](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_segm.py)
 
 <p float="left">
     <img src="pix/segment-decoder.png" width="700" />
     <img src="pix/segment-loss.png" width="700" />
 </p>
-
-The code - [CycleGAN with segment loss](https://github.com/tintinrevient/pose-cyclegan/blob/main/train_segm.py)
 
 ## Dataset
 
